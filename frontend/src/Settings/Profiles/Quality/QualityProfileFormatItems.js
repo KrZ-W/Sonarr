@@ -17,6 +17,10 @@ function calcOrder(profileFormatItems) {
   }, {});
 
   return [...profileFormatItems].sort((a, b) => {
+    // Sort by priority first (priority items at top), then by score
+    if (a.priority !== b.priority) {
+      return a.priority ? -1 : 1;
+    }
     if (b.score !== a.score) {
       return b.score - a.score;
     }
@@ -47,6 +51,15 @@ class QualityProfileFormatItems extends Component {
     } = this.props;
 
     onQualityProfileFormatItemScoreChange(formatId, value);
+    this.reorderItems();
+  };
+
+  onPriorityChange = (formatId, value) => {
+    const {
+      onQualityProfileFormatItemPriorityChange
+    } = this.props;
+
+    onQualityProfileFormatItemPriorityChange(formatId, value);
     this.reorderItems();
   };
 
@@ -117,13 +130,17 @@ class QualityProfileFormatItems extends Component {
               <div className={styles.headerScore}>
                 {translate('Score')}
               </div>
+              <div className={styles.headerPriority}>
+                {translate('Priority')}
+              </div>
             </div>
             {
               order.map((index) => {
                 const {
                   format,
                   name,
-                  score
+                  score,
+                  priority
                 } = profileFormatItems[index];
                 return (
                   <QualityProfileFormatItem
@@ -131,7 +148,9 @@ class QualityProfileFormatItems extends Component {
                     formatId={format}
                     name={name}
                     score={score}
+                    priority={priority}
                     onScoreChange={this.onScoreChange}
+                    onPriorityChange={this.onPriorityChange}
                   />
                 );
               })
@@ -147,7 +166,8 @@ QualityProfileFormatItems.propTypes = {
   profileFormatItems: PropTypes.arrayOf(PropTypes.object).isRequired,
   errors: PropTypes.arrayOf(PropTypes.object),
   warnings: PropTypes.arrayOf(PropTypes.object),
-  onQualityProfileFormatItemScoreChange: PropTypes.func
+  onQualityProfileFormatItemScoreChange: PropTypes.func,
+  onQualityProfileFormatItemPriorityChange: PropTypes.func
 };
 
 QualityProfileFormatItems.defaultProps = {
