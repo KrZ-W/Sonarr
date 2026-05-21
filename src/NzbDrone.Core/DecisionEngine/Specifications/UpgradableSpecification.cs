@@ -34,6 +34,57 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             var qualityCompare = qualityComparer.Compare(newQuality?.Quality, currentQuality.Quality);
             var downloadPropersAndRepacks = _configService.DownloadPropersAndRepacks;
 
+            // Calculate priority and regular CF scores separately
+            var currentPriorityScore = qualityProfile.CalculatePriorityFormatScore(currentCustomFormats);
+            var newPriorityScore = qualityProfile.CalculatePriorityFormatScore(newCustomFormats);
+            var currentFormatScore = qualityProfile.CalculateCustomFormatScore(currentCustomFormats);
+            var newFormatScore = qualityProfile.CalculateCustomFormatScore(newCustomFormats);
+
+            // Priority CFs are compared BEFORE quality
+            if (newPriorityScore > currentPriorityScore)
+            {
+                // Higher priority score - accept regardless of quality difference
+                // But respect the overall CF cutoff
+                if (currentFormatScore >= qualityProfile.CutoffFormatScore)
+                {
+                    _logger.Debug("Priority CF upgrade blocked: Existing item meets cut-off for custom formats. Existing: [{0}] ({1}). Cutoff: {2}",
+                        currentCustomFormats.ConcatToString(),
+                        currentFormatScore,
+                        qualityProfile.CutoffFormatScore);
+                    return UpgradeableRejectReason.CustomFormatCutoff;
+                }
+
+                // Check minimum upgrade increment (using total score)
+                if (newFormatScore < currentFormatScore + qualityProfile.MinUpgradeFormatScore)
+                {
+                    _logger.Debug("Priority CF upgrade blocked: Score increment {0} < minimum {1}",
+                                  newFormatScore - currentFormatScore,
+                                  qualityProfile.MinUpgradeFormatScore);
+                    return UpgradeableRejectReason.MinCustomFormatScore;
+                }
+
+                _logger.Debug("Priority CF upgrade: [{0}] ({1}) > [{2}] ({3}), accepting regardless of quality",
+                    newCustomFormats.ConcatToString(),
+                    newPriorityScore,
+                    currentCustomFormats.ConcatToString(),
+                    currentPriorityScore);
+                return UpgradeableRejectReason.None;
+            }
+
+            if (newPriorityScore < currentPriorityScore)
+            {
+                // Lower priority score - reject regardless of quality
+                _logger.Debug("Priority CF downgrade: [{0}] ({1}) < [{2}] ({3}), rejecting regardless of quality",
+                    newCustomFormats.ConcatToString(),
+                    newPriorityScore,
+                    currentCustomFormats.ConcatToString(),
+                    currentPriorityScore);
+                return UpgradeableRejectReason.CustomFormatScore;
+            }
+
+            // Priority scores equal - proceed to quality comparison
+            _logger.Trace("Priority CF scores equal ({0}), proceeding to quality comparison", newPriorityScore);
+
             if (qualityCompare > 0 && QualityCutoffNotMet(qualityProfile, currentQuality, newQuality))
             {
                 _logger.Debug("New item has a better quality. Existing: {0}. New: {1}", currentQuality, newQuality);
@@ -80,8 +131,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return UpgradeableRejectReason.QualityCutoff;
             }
 
-            var currentFormatScore = qualityProfile.CalculateCustomFormatScore(currentCustomFormats);
-            var newFormatScore = qualityProfile.CalculateCustomFormatScore(newCustomFormats);
+            // Note: currentFormatScore and newFormatScore are already calculated above
 
             if (newFormatScore <= currentFormatScore)
             {

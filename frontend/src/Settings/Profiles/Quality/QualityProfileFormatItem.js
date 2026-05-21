@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import CheckInput from 'Components/Form/CheckInput';
 import NumberInput from 'Components/Form/NumberInput';
 import styles from './QualityProfileFormatItem.css';
 
@@ -16,13 +17,22 @@ class QualityProfileFormatItem extends Component {
     this.props.onScoreChange(formatId, value);
   };
 
+  onPriorityChange = ({ value }) => {
+    const {
+      formatId
+    } = this.props;
+
+    this.props.onPriorityChange(formatId, value);
+  };
+
   //
   // Render
 
   render() {
     const {
       name,
-      score
+      score,
+      priority
     } = this.props;
 
     return (
@@ -45,6 +55,12 @@ class QualityProfileFormatItem extends Component {
               value={score}
               onChange={this.onScoreChange}
             />
+            <CheckInput
+              containerClassName={styles.priorityContainer}
+              name={`${name}_priority`}
+              value={priority}
+              onChange={this.onPriorityChange}
+            />
           </label>
 
         </div>
@@ -57,12 +73,15 @@ QualityProfileFormatItem.propTypes = {
   formatId: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   score: PropTypes.number.isRequired,
-  onScoreChange: PropTypes.func
+  priority: PropTypes.bool.isRequired,
+  onScoreChange: PropTypes.func,
+  onPriorityChange: PropTypes.func
 };
 
 QualityProfileFormatItem.defaultProps = {
   // To handle the case score is deleted during edit
-  score: 0
+  score: 0,
+  priority: false
 };
 
 export default QualityProfileFormatItem;
