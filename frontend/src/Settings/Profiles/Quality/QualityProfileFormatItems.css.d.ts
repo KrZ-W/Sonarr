@@ -4,6 +4,7 @@ interface CssExports {
   'addCustomFormatMessage': string;
   'formats': string;
   'headerContainer': string;
+  'headerPriority': string;
   'headerScore': string;
   'headerTitle': string;
 }
