@@ -3,6 +3,7 @@
 interface CssExports {
   'formatName': string;
   'formatNameContainer': string;
+  'priorityContainer': string;
   'qualityProfileFormatItem': string;
   'qualityProfileFormatItemContainer': string;
   'scoreContainer': string;

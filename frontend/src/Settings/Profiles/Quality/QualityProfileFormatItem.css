@@ -43,3 +43,11 @@
   border-radius: unset;
   background-color: unset;
 }
+
+.priorityContainer {
+  display: flex;
+  flex-grow: 0;
+  align-items: center;
+  padding: 0 8px;
+  width: 60px;
+}
