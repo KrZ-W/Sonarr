@@ -66,13 +66,21 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
 
                     if (newFormatScore < currentFormatScore + qualityProfile.MinUpgradeFormatScore)
                     {
-                        _logger.Debug("Priority CF upgrade blocked at import: score increment {0} < minimum {1}",
+                        _logger.Debug("Priority CF upgrade blocked at import: score increment {0} < minimum {1}. New: [{2}] ({3}). Existing: [{4}] ({5}).",
                             newFormatScore - currentFormatScore,
-                            qualityProfile.MinUpgradeFormatScore);
+                            qualityProfile.MinUpgradeFormatScore,
+                            newFormats.ConcatToString(),
+                            newFormatScore,
+                            currentFormats.ConcatToString(),
+                            currentFormatScore);
                         return ImportSpecDecision.Reject(ImportRejectionReason.NotCustomFormatUpgrade,
-                            "Custom format score increment {0} is below the minimum {1} required for upgrade",
+                            "Custom format score increment {0} below minimum {1}. New: [{2}] ({3}). Existing: [{4}] ({5}).",
                             newFormatScore - currentFormatScore,
-                            qualityProfile.MinUpgradeFormatScore);
+                            qualityProfile.MinUpgradeFormatScore,
+                            newFormats.ConcatToString(),
+                            newFormatScore,
+                            currentFormats.ConcatToString(),
+                            currentFormatScore);
                     }
 
                     _logger.Debug("Priority CF upgrade at import: [{0}] ({1}) > [{2}] ({3}), accepting regardless of quality",
