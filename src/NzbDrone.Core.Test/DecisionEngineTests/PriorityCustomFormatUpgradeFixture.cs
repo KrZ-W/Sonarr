@@ -65,6 +65,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResult = new RemoteEpisode
             {
                 Series = fakeSeries,
+
                 // New release also below cutoff but same quality level
                 ParsedEpisodeInfo = new ParsedEpisodeInfo { Quality = new QualityModel(Quality.SDTV, new Revision(version: 1)), Languages = new List<Language> { Language.English } },
                 Episodes = singleEpisodeList,
