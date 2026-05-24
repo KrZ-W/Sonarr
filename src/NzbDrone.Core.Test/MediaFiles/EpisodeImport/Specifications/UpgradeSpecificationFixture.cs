@@ -565,5 +565,161 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
 
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeFalse();
         }
+
+        [Test]
+        public void should_accept_quality_downgrade_when_new_release_has_priority_custom_format()
+        {
+            // Mirrors the Radarr bug fix: a priority CF (e.g. VFQ language) must override quality downgrade at import.
+            var priorityFormat = new CustomFormat("VFQ") { Id = 1 };
+
+            var episodeFile = new EpisodeFile
+            {
+                Quality = new QualityModel(Quality.Bluray2160p)
+            };
+
+            _series.QualityProfile.Value.FormatItems = new List<ProfileFormatItem>
+            {
+                new ProfileFormatItem { Format = priorityFormat, Score = 100, Priority = true }
+            };
+            _series.QualityProfile.Value.CutoffFormatScore = 10000;
+            _series.QualityProfile.Value.MinUpgradeFormatScore = 0;
+
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.DoNotPrefer);
+
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Returns(new List<CustomFormat>());
+
+            _localEpisode.Quality = new QualityModel(Quality.WEBDL1080p);
+            _localEpisode.CustomFormats = new List<CustomFormat> { priorityFormat };
+            _localEpisode.CustomFormatScore = 100;
+
+            _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(e => e.EpisodeFileId = 1)
+                .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(episodeFile))
+                .Build()
+                .ToList();
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_priority_custom_format_downgrade_even_if_quality_upgrade()
+        {
+            var priorityFormat = new CustomFormat("VFQ") { Id = 1 };
+
+            var episodeFile = new EpisodeFile
+            {
+                Quality = new QualityModel(Quality.WEBDL1080p)
+            };
+
+            _series.QualityProfile.Value.FormatItems = new List<ProfileFormatItem>
+            {
+                new ProfileFormatItem { Format = priorityFormat, Score = 100, Priority = true }
+            };
+
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.DoNotPrefer);
+
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Returns(new List<CustomFormat> { priorityFormat });
+
+            _localEpisode.Quality = new QualityModel(Quality.Bluray2160p);
+            _localEpisode.CustomFormats = new List<CustomFormat>();
+            _localEpisode.CustomFormatScore = 0;
+
+            _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(e => e.EpisodeFileId = 1)
+                .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(episodeFile))
+                .Build()
+                .ToList();
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_respect_custom_format_cutoff_on_priority_upgrade()
+        {
+            var existingPriorityFormat = new CustomFormat("Existing Priority") { Id = 1 };
+            var newPriorityFormat = new CustomFormat("New Priority") { Id = 2 };
+
+            var episodeFile = new EpisodeFile
+            {
+                Quality = new QualityModel(Quality.WEBDL1080p)
+            };
+
+            _series.QualityProfile.Value.FormatItems = new List<ProfileFormatItem>
+            {
+                new ProfileFormatItem { Format = existingPriorityFormat, Score = 100, Priority = true },
+                new ProfileFormatItem { Format = newPriorityFormat, Score = 200, Priority = true }
+            };
+            _series.QualityProfile.Value.CutoffFormatScore = 100;
+
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.DoNotPrefer);
+
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Returns(new List<CustomFormat> { existingPriorityFormat });
+
+            _localEpisode.Quality = new QualityModel(Quality.WEBDL1080p);
+            _localEpisode.CustomFormats = new List<CustomFormat> { newPriorityFormat };
+            _localEpisode.CustomFormatScore = 200;
+
+            _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(e => e.EpisodeFileId = 1)
+                .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(episodeFile))
+                .Build()
+                .ToList();
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_still_accept_quality_upgrade_with_no_priority_custom_formats_configured()
+        {
+            // Regression: a profile with only regular (non-priority) CFs must behave exactly
+            // as upstream Sonarr — quality is the deciding factor, CFs only matter on tie.
+            var regularFormat = new CustomFormat("Regular") { Id = 1 };
+
+            var episodeFile = new EpisodeFile
+            {
+                Quality = new QualityModel(Quality.HDTV720p)
+            };
+
+            _series.QualityProfile.Value.FormatItems = new List<ProfileFormatItem>
+            {
+                new ProfileFormatItem { Format = regularFormat, Score = 50, Priority = false }
+            };
+
+            Mocker.GetMock<IConfigService>()
+                .Setup(s => s.DownloadPropersAndRepacks)
+                .Returns(ProperDownloadTypes.DoNotPrefer);
+
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Returns(new List<CustomFormat> { regularFormat });
+
+            _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
+            _localEpisode.CustomFormats = new List<CustomFormat>();
+            _localEpisode.CustomFormatScore = 0;
+
+            _localEpisode.Episodes = Builder<Episode>.CreateListOfSize(1)
+                .All()
+                .With(e => e.EpisodeFileId = 1)
+                .With(e => e.EpisodeFile = new LazyLoaded<EpisodeFile>(episodeFile))
+                .Build()
+                .ToList();
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+        }
     }
 }
