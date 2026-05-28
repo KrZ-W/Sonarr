@@ -124,6 +124,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("MinimumAge", value); }
         }
 
+        public string IndexerCooldownPeriods
+        {
+            get { return GetValue("IndexerCooldownPeriods", string.Empty); }
+
+            set { SetValue("IndexerCooldownPeriods", value); }
+        }
+
         public ProperDownloadTypes DownloadPropersAndRepacks
         {
             get { return GetValueEnum("DownloadPropersAndRepacks", ProperDownloadTypes.PreferAndUpgrade); }

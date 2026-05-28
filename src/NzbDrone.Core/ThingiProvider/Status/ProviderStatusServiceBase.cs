@@ -28,9 +28,21 @@ namespace NzbDrone.Core.ThingiProvider.Status
         protected readonly IRuntimeInfo _runtimeInfo;
         protected readonly Logger _logger;
 
-        protected int MaximumEscalationLevel { get; set; } = EscalationBackOff.Periods.Length - 1;
+        private int? _maximumEscalationLevelOverride;
+
+        protected int MaximumEscalationLevel
+        {
+            get => _maximumEscalationLevelOverride ?? GetEscalationPeriods().Length - 1;
+            set => _maximumEscalationLevelOverride = value;
+        }
+
         protected TimeSpan MinimumTimeSinceInitialFailure { get; set; } = TimeSpan.Zero;
         protected TimeSpan MinimumTimeSinceStartup { get; set; } = TimeSpan.FromMinutes(15);
+
+        protected virtual int[] GetEscalationPeriods()
+        {
+            return EscalationBackOff.Periods;
+        }
 
         public ProviderStatusServiceBase(IProviderStatusRepository<TModel> providerStatusRepository, IEventAggregator eventAggregator, IRuntimeInfo runtimeInfo, Logger logger)
         {
@@ -52,9 +64,10 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         protected virtual TimeSpan CalculateBackOffPeriod(TModel status)
         {
-            var level = Math.Min(MaximumEscalationLevel, status.EscalationLevel);
+            var periods = GetEscalationPeriods();
+            var level = Math.Min(periods.Length - 1, status.EscalationLevel);
 
-            return TimeSpan.FromSeconds(EscalationBackOff.Periods[level]);
+            return TimeSpan.FromSeconds(periods[level]);
         }
 
         public virtual void RecordSuccess(int providerId)
@@ -126,7 +139,9 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
                 if (inStartupGracePeriod && minimumBackOff == TimeSpan.Zero && status.DisabledTill.HasValue)
                 {
-                    var maximumDisabledTill = now + TimeSpan.FromSeconds(EscalationBackOff.Periods[2]);
+                    var startupGracePeriods = GetEscalationPeriods();
+                    var startupGraceIndex = Math.Min(2, startupGracePeriods.Length - 1);
+                    var maximumDisabledTill = now + TimeSpan.FromSeconds(startupGracePeriods[startupGraceIndex]);
                     if (maximumDisabledTill < status.DisabledTill)
                     {
                         status.DisabledTill = maximumDisabledTill;
