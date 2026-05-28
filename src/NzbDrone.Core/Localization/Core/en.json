@@ -958,6 +958,8 @@
   "IncludeHealthWarnings": "Include Health Warnings",
   "IncludeUnmonitored": "Include Unmonitored",
   "Indexer": "Indexer",
+  "IndexerCooldownPeriods": "Indexer Cooldown Periods",
+  "IndexerCooldownPeriodsHelpText": "Comma-separated escalation schedule in minutes (first value must be 0 = healthy). Leave blank for default: 0,1,5,15,30,60,180,360,720,1440. Lower the last value to cap the maximum cooldown.",
   "IndexerDownloadClientHealthCheckMessage": "Indexers with invalid download clients: {indexerNames}.",
   "IndexerDownloadClientHelpText": "Specify which download client is used for grabs from this indexer",
   "IndexerFlags": "Indexer Flags",
