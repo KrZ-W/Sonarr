@@ -52,6 +52,7 @@ namespace NzbDrone.Core.Configuration
         int RssSyncInterval { get; set; }
         int MaximumSize { get; set; }
         int MinimumAge { get; set; }
+        string IndexerCooldownPeriods { get; set; }
 
         ListSyncLevelType ListSyncLevel { get; set; }
         int ListSyncTag { get; set; }
