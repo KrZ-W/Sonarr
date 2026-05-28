@@ -1,5 +1,7 @@
+using System.Linq;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.ThingiProvider.Status;
@@ -15,9 +17,47 @@ namespace NzbDrone.Core.Indexers
 
     public class IndexerStatusService : ProviderStatusServiceBase<IIndexer, IndexerStatus>, IIndexerStatusService
     {
-        public IndexerStatusService(IIndexerStatusRepository providerStatusRepository, IEventAggregator eventAggregator, IRuntimeInfo runtimeInfo, Logger logger)
+        private readonly IConfigService _configService;
+
+        public IndexerStatusService(IIndexerStatusRepository providerStatusRepository, IEventAggregator eventAggregator, IRuntimeInfo runtimeInfo, IConfigService configService, Logger logger)
             : base(providerStatusRepository, eventAggregator, runtimeInfo, logger)
         {
+            _configService = configService;
+        }
+
+        protected override int[] GetEscalationPeriods()
+        {
+            var configured = _configService.IndexerCooldownPeriods;
+            if (string.IsNullOrWhiteSpace(configured))
+            {
+                return EscalationBackOff.Periods;
+            }
+
+            try
+            {
+                var parts = configured.Split(',')
+                    .Select(s => s.Trim())
+                    .Where(s => s.Length > 0)
+                    .Select(s => int.Parse(s) * 60) // input is minutes, internal is seconds
+                    .ToList();
+
+                if (parts.Count == 0)
+                {
+                    return EscalationBackOff.Periods;
+                }
+
+                // Ensure first level is 0 (healthy = no cooldown)
+                if (parts[0] != 0)
+                {
+                    parts.Insert(0, 0);
+                }
+
+                return parts.ToArray();
+            }
+            catch
+            {
+                return EscalationBackOff.Periods;
+            }
         }
 
         public ReleaseInfo GetLastRssSyncReleaseInfo(int indexerId)

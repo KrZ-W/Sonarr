@@ -98,6 +98,22 @@ function IndexerOptions(props) {
                 {...settings.rssSyncInterval}
               />
             </FormGroup>
+
+            <FormGroup
+              advancedSettings={advancedSettings}
+              isAdvanced={true}
+            >
+              <FormLabel>{translate('IndexerCooldownPeriods')}</FormLabel>
+
+              <FormInputGroup
+                type={inputTypes.TEXT}
+                name="indexerCooldownPeriods"
+                placeholder="0,1,5,15,30,60,180,360,720,1440"
+                helpText={translate('IndexerCooldownPeriodsHelpText')}
+                onChange={onInputChange}
+                {...settings.indexerCooldownPeriods}
+              />
+            </FormGroup>
           </Form>
       }
     </FieldSet>
