@@ -7,10 +7,13 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Delay;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -67,7 +70,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                                   .With(e => e.Runtime = 60)
                                                   .With(e => e.QualityProfile = new QualityProfile
                                                   {
-                                                      Items = Qualities.QualityFixture.GetDefaultQualities()
+                                                      Items = Qualities.QualityFixture.GetDefaultQualities(),
+                                                      FormatItems = new List<ProfileFormatItem>()
                                                   })
                                                   .Build();
 
@@ -82,6 +86,56 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                   {
                       PreferredProtocol = downloadProtocol
                   });
+        }
+
+        private void GivenPriorityFormat(RemoteEpisode remoteEpisode, CustomFormat format, int score)
+        {
+            remoteEpisode.Series.QualityProfile.Value.FormatItems = new List<ProfileFormatItem>
+            {
+                new ProfileFormatItem { Format = format, Score = score, Priority = true }
+            };
+            remoteEpisode.CustomFormats = new List<CustomFormat> { format };
+            remoteEpisode.CustomFormatScore = remoteEpisode.Series.QualityProfile.Value.CalculateCustomFormatScore(remoteEpisode.CustomFormats);
+        }
+
+        [Test]
+        public void should_prefer_priority_custom_format_over_higher_quality()
+        {
+            // Lower quality but carrying a priority CF must beat a higher quality release that lacks it,
+            // matching the upgrade-path behaviour at initial grab.
+            var priorityFormat = new CustomFormat("Priority Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 };
+
+            var remoteEpisodeHighQuality = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.Bluray1080p), Language.English);
+
+            var remoteEpisodePriority = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.SDTV), Language.English);
+            GivenPriorityFormat(remoteEpisodePriority, priorityFormat, 100);
+
+            var decisions = new List<DownloadDecision>();
+            decisions.Add(new DownloadDecision(remoteEpisodeHighQuality));
+            decisions.Add(new DownloadDecision(remoteEpisodePriority));
+
+            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodePriority);
+        }
+
+        [Test]
+        public void should_prefer_higher_quality_when_priority_format_scores_are_equal()
+        {
+            // Both releases carry the same priority CF, so quality decides within the priority tier.
+            var priorityFormat = new CustomFormat("Priority Format", new ResolutionSpecification { Value = (int)Resolution.R1080p }) { Id = 1 };
+
+            var remoteEpisodeLowQuality = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.SDTV), Language.English);
+            GivenPriorityFormat(remoteEpisodeLowQuality, priorityFormat, 100);
+
+            var remoteEpisodeHighQuality = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.Bluray1080p), Language.English);
+            GivenPriorityFormat(remoteEpisodeHighQuality, priorityFormat, 100);
+
+            var decisions = new List<DownloadDecision>();
+            decisions.Add(new DownloadDecision(remoteEpisodeLowQuality));
+            decisions.Add(new DownloadDecision(remoteEpisodeHighQuality));
+
+            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodeHighQuality);
         }
 
         [Test]
