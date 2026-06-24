@@ -131,6 +131,7 @@ namespace NzbDrone.Core.CustomFormats
                 Series = localEpisode.Series,
                 Size = localEpisode.Size,
                 Languages = localEpisode.Languages,
+                AudioTitles = localEpisode.MediaInfo?.AudioTitles,
                 IndexerFlags = localEpisode.IndexerFlags,
                 ReleaseType = localEpisode.ReleaseType,
                 Filename = Path.GetFileName(localEpisode.Path)
@@ -202,6 +203,7 @@ namespace NzbDrone.Core.CustomFormats
                 Series = series,
                 Size = episodeFile.Size,
                 Languages = episodeFile.Languages,
+                AudioTitles = episodeFile.MediaInfo?.AudioTitles,
                 IndexerFlags = episodeFile.IndexerFlags,
                 ReleaseType = episodeFile.ReleaseType,
                 Filename = Path.GetFileName(episodeFile.RelativePath),

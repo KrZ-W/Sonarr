@@ -21,8 +21,10 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
         private readonly Logger _logger;
         private readonly List<FFProbePixelFormat> _pixelFormats;
 
-        public const int MINIMUM_MEDIA_INFO_SCHEMA_REVISION = 8;
-        public const int CURRENT_MEDIA_INFO_SCHEMA_REVISION = 11;
+        // Bumped CURRENT 11 -> 12 to capture per-audio-track titles (AudioTitles).
+        // MINIMUM raised to 12 so existing files re-probe (and gain AudioTitles) on the next library scan.
+        public const int MINIMUM_MEDIA_INFO_SCHEMA_REVISION = 12;
+        public const int CURRENT_MEDIA_INFO_SCHEMA_REVISION = 12;
 
         private static readonly string[] ValidHdrColourPrimaries = { "bt2020" };
         private static readonly string[] HlgTransferFunctions = { "arib-std-b67" };
@@ -100,6 +102,9 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                 mediaInfoModel.AudioLanguages = analysis.AudioStreams?.Select(x => x.Language)
                     .Where(l => l.IsNotNullOrWhiteSpace())
                     .ToList();
+                mediaInfoModel.AudioTitles = analysis.AudioStreams?.Select(GetStreamTitle)
+                    .Where(t => t.IsNotNullOrWhiteSpace())
+                    .ToList();
                 mediaInfoModel.Subtitles = analysis.SubtitleStreams?.Select(x => x.Language)
                     .Where(l => l.IsNotNullOrWhiteSpace())
                     .ToList();
@@ -159,6 +164,27 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
             }
 
             return video.Value;
+        }
+
+        private static string GetStreamTitle(MediaStream mediaStream)
+        {
+            if (mediaStream?.Tags == null)
+            {
+                return null;
+            }
+
+            // ffprobe exposes the per-stream title under "title"; Matroska muxers sometimes use "TITLE"
+            if (mediaStream.Tags.TryGetValue("title", out var title) && title.IsNotNullOrWhiteSpace())
+            {
+                return title;
+            }
+
+            if (mediaStream.Tags.TryGetValue("TITLE", out var titleUpper) && titleUpper.IsNotNullOrWhiteSpace())
+            {
+                return titleUpper;
+            }
+
+            return null;
         }
 
         private VideoStream GetPrimaryVideoStream(IMediaAnalysis mediaAnalysis)
