@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
@@ -46,6 +47,10 @@ namespace NzbDrone.Core.Download
 
         public void Execute(ProcessMonitoredDownloadsCommand message)
         {
+            var stopwatch = Stopwatch.StartNew();
+
+            _logger.Debug("Completed Download Handling run starting.");
+
             var enableCompletedDownloadHandling = _configService.EnableCompletedDownloadHandling;
             var trackedDownloads = _trackedDownloadService.GetTrackedDownloads()
                                                           .Where(t => t.IsTrackable)
@@ -76,6 +81,19 @@ namespace NzbDrone.Core.Download
 
             // Imported downloads are no longer trackable so process them after processing trackable downloads
             RemoveCompletedDownloads();
+
+            stopwatch.Stop();
+
+            var interval = _configService.CheckForFinishedDownloadInterval;
+
+            if (interval > 0 && stopwatch.Elapsed.TotalMinutes > interval)
+            {
+                _logger.Warn("Completed Download Handling run completed in {0} ({1} tracked download(s)), exceeding the {2} minute interval; long runs hold the disk-access slot and can delay manually-queued tasks.", stopwatch.Elapsed, trackedDownloads.Count, interval);
+            }
+            else
+            {
+                _logger.Debug("Completed Download Handling run completed in {0} ({1} tracked download(s)).", stopwatch.Elapsed, trackedDownloads.Count);
+            }
 
             _eventAggregator.PublishEvent(new DownloadsProcessedEvent());
         }
