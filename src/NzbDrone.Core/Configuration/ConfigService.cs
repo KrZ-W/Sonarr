@@ -145,6 +145,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableCompletedDownloadHandling", value); }
         }
 
+        public int CheckForFinishedDownloadInterval
+        {
+            get { return GetValueInt("CheckForFinishedDownloadInterval", 1); }
+
+            set { SetValue("CheckForFinishedDownloadInterval", value); }
+        }
+
         public bool AutoRedownloadFailed
         {
             get { return GetValueBoolean("AutoRedownloadFailed", true); }

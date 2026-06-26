@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Jobs
                 {
                     new ScheduledTask
                     {
-                        Interval = 1,
+                        Interval = GetRefreshMonitoredInterval(),
                         TypeName = typeof(RefreshMonitoredDownloadsCommand).FullName,
                         Priority = CommandPriority.High
                     },
@@ -199,6 +199,18 @@ namespace NzbDrone.Core.Jobs
             return interval;
         }
 
+        private int GetRefreshMonitoredInterval()
+        {
+            var interval = _configService.CheckForFinishedDownloadInterval;
+
+            if (interval < 1)
+            {
+                return 1;
+            }
+
+            return interval;
+        }
+
         public void Handle(CommandExecutedEvent message)
         {
             var scheduledTask = _scheduledTaskRepository.All().SingleOrDefault(c => c.TypeName == message.Command.Body.GetType().FullName);
@@ -227,10 +239,14 @@ namespace NzbDrone.Core.Jobs
             var backup = _scheduledTaskRepository.GetDefinition(typeof(BackupCommand));
             backup.Interval = GetBackupInterval();
 
-            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, backup });
+            var refreshMonitoredDownloads = _scheduledTaskRepository.GetDefinition(typeof(RefreshMonitoredDownloadsCommand));
+            refreshMonitoredDownloads.Interval = GetRefreshMonitoredInterval();
+
+            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, backup, refreshMonitoredDownloads });
 
             _cache.Find(rss.TypeName).Interval = rss.Interval;
             _cache.Find(backup.TypeName).Interval = backup.Interval;
+            _cache.Find(refreshMonitoredDownloads.TypeName).Interval = refreshMonitoredDownloads.Interval;
         }
     }
 }
