@@ -1,8 +1,11 @@
 using System;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine.Specifications.Search;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
@@ -74,6 +77,18 @@ namespace NzbDrone.Core.Test.DecisionEngineTests.Search.SingleEpisodeSearchMatch
         [Test]
         public void should_return_true_if_full_season_result_for_full_season_search()
         {
+            Subject.IsSatisfiedBy(_remoteEpisode, _searchCriteria).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_return_true_for_full_season_result_when_season_pack_upgrades_are_enabled()
+        {
+            Mocker.GetMock<IConfigService>()
+                  .SetupGet(s => s.SeasonPackUpgrade)
+                  .Returns(SeasonPackUpgradeType.Any);
+
+            _remoteEpisode.ParsedEpisodeInfo.EpisodeNumbers = Array.Empty<int>();
+
             Subject.IsSatisfiedBy(_remoteEpisode, _searchCriteria).Accepted.Should().BeTrue();
         }
     }

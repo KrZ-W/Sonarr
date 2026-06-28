@@ -1,7 +1,9 @@
 using System.Linq;
 using NLog;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
@@ -10,11 +12,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
     {
         private readonly Logger _logger;
         private readonly ISceneMappingService _sceneMappingService;
+        private readonly IConfigService _configService;
 
-        public SingleEpisodeSearchMatchSpecification(ISceneMappingService sceneMappingService, Logger logger)
+        public SingleEpisodeSearchMatchSpecification(ISceneMappingService sceneMappingService, IConfigService configService, Logger logger)
         {
             _logger = logger;
             _sceneMappingService = sceneMappingService;
+            _configService = configService;
         }
 
         public SpecificationPriority Priority => SpecificationPriority.Default;
@@ -52,6 +56,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
             if (!remoteEpisode.ParsedEpisodeInfo.EpisodeNumbers.Any())
             {
+                if (_configService.SeasonPackUpgrade != SeasonPackUpgradeType.All)
+                {
+                    _logger.Debug("Full season result during single episode search, but season pack upgrades are enabled; allowing for upgrade evaluation.");
+                    return DownloadSpecDecision.Accept();
+                }
+
                 _logger.Debug("Full season result during single episode search, skipping.");
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Full season pack");
             }
@@ -69,6 +79,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
         {
             if (remoteEpisode.ParsedEpisodeInfo.FullSeason && !animeEpisodeSpec.IsSeasonSearch)
             {
+                if (_configService.SeasonPackUpgrade != SeasonPackUpgradeType.All)
+                {
+                    _logger.Debug("Full season result during single episode search, but season pack upgrades are enabled; allowing for upgrade evaluation.");
+                    return DownloadSpecDecision.Accept();
+                }
+
                 _logger.Debug("Full season result during single episode search, skipping.");
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.FullSeason, "Full season pack");
             }
