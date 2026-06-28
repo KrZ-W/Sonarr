@@ -41,9 +41,12 @@ jobs:
           if [ -z "$raw" ]; then raw="${GITHUB_REF_NAME}"; fi   # e.g. v4.0.17.2950+krzw.1
           docker_tag="${raw#v}"               # strip leading 'v'
           docker_tag="${docker_tag//+/-}"     # '+' is invalid in image tags -> '-'
+          image="${REGISTRY}/${IMAGE_NAME}"
+          image="${image,,}"                  # GHCR repository names must be lowercase
           echo "git_tag=${raw}" >> "$GITHUB_OUTPUT"
           echo "docker_tag=${docker_tag}" >> "$GITHUB_OUTPUT"
-          echo "Building ${REGISTRY}/${IMAGE_NAME}:${docker_tag} from ${raw}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "Building ${image}:${docker_tag} from ${raw}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -61,7 +64,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.docker_tag }}
+          tags: ${{ steps.version.outputs.image }}:${{ steps.version.outputs.docker_tag }}
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.git_tag }}
             org.opencontainers.image.revision=${{ github.sha }}
