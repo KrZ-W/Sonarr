@@ -100,6 +100,27 @@ const fileDateOptions = [
   }
 ];
 
+const seasonPackUpgradeOptions = [
+  {
+    key: 'all',
+    get value() {
+      return translate('All');
+    }
+  },
+  {
+    key: 'threshold',
+    get value() {
+      return translate('Threshold');
+    }
+  },
+  {
+    key: 'any',
+    get value() {
+      return translate('Any');
+    }
+  }
+];
+
 class MediaManagement extends Component {
 
   //
@@ -369,6 +390,42 @@ class MediaManagement extends Component {
                       {...settings.downloadPropersAndRepacks}
                     />
                   </FormGroup>
+
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>{translate('SeasonPackUpgradeAllowLabel')}</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.SELECT}
+                      name="seasonPackUpgrade"
+                      helpText={translate('SeasonPackUpgradeAllowHelpText')}
+                      helpTextWarning={
+                        settings.seasonPackUpgrade.value === 'any' ?
+                          translate('SeasonPackUpgradeAllowAnyWarning') :
+                          undefined
+                      }
+                      values={seasonPackUpgradeOptions}
+                      onChange={onInputChange}
+                      {...settings.seasonPackUpgrade}
+                    />
+                  </FormGroup>
+
+                  {
+                    settings.seasonPackUpgrade.value === 'threshold' ?
+                      <FormGroup size={sizes.MEDIUM}>
+                        <FormLabel>{translate('SeasonPackUpgradeThresholdLabel')}</FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.NUMBER}
+                          name="seasonPackUpgradeThreshold"
+                          unit="%"
+                          helpText={translate('SeasonPackUpgradeThresholdHelpText')}
+                          min={0}
+                          max={100}
+                          onChange={onInputChange}
+                          {...settings.seasonPackUpgradeThreshold}
+                        />
+                      </FormGroup> : null
+                  }
 
                   <FormGroup
                     advancedSettings={advancedSettings}
