@@ -12,6 +12,21 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.2] — based on Sonarr 4.0.19.2979
+
+Docker image fix only — no source or feature changes.
+
+### Fixed
+
+- **Container crash-loop at startup** (`FileLoadException` for
+  `System.Text.Encoding.CodePages` / `Microsoft.Extensions.*`). The Dockerfile built with
+  the *latest* .NET 6 SDK, which resolved Sonarr 4.0.18+'s out-of-band package references
+  to net7/net8 assets that can't load on the net6 runtime. Pinned the build to the exact
+  upstream toolchain — **SDK 6.0.405**, framework-dependent (upstream's `SelfContained=false`)
+  — so the correct net6.0 assets are bundled. Image now boots (`/ping` → OK).
+
+Use `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.2` — `4.0.19.2979-krzw.1` is broken.
+
 ## [v4.0.19.2979+krzw.1] — based on Sonarr 4.0.19.2979
 
 Maintenance release — rebased the fork onto upstream Sonarr **4.0.19.2979** (from `4.0.17.2950`).
@@ -88,6 +103,7 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.1...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.2...HEAD
+[v4.0.19.2979+krzw.2]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.2
 [v4.0.19.2979+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.1
 [v4.0.17.2950+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.17.2950%2Bkrzw.1

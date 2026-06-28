@@ -121,7 +121,7 @@ and renames (they share a single disk-access slot).
 ```yaml
 services:
   sonarr:
-    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.1   # pin to a release
+    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.2   # pin to a release
     container_name: sonarr
     environment:
       - PUID=1000
