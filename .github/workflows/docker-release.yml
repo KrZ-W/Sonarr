@@ -1,0 +1,70 @@
+name: Docker release image
+
+# Builds an immutable, versioned image when a fork release tag is pushed.
+# Tag format:  v<upstream-version>+krzw.<N>   e.g. v4.0.17.2950+krzw.1
+# Image tag:   <upstream-version>-krzw.<N>    e.g. 4.0.17.2950-krzw.1
+#   (container registries don't allow '+', so it is replaced with '-')
+#
+# The dev/branch images (:latest, :<branch>, :sha-*) are handled separately by
+# docker-image.yml. This workflow only runs on tag pushes.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build, e.g. v4.0.17.2950+krzw.1'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/sonarr
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Compute image tag from git tag
+        id: version
+        run: |
+          # Use the workflow_dispatch input if present, else the pushed tag name.
+          raw="${{ github.event.inputs.tag }}"
+          if [ -z "$raw" ]; then raw="${GITHUB_REF_NAME}"; fi   # e.g. v4.0.17.2950+krzw.1
+          docker_tag="${raw#v}"               # strip leading 'v'
+          docker_tag="${docker_tag//+/-}"     # '+' is invalid in image tags -> '-'
+          echo "git_tag=${raw}" >> "$GITHUB_OUTPUT"
+          echo "docker_tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+          echo "Building ${REGISTRY}/${IMAGE_NAME}:${docker_tag} from ${raw}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.docker_tag }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.git_tag }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

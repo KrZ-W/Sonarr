@@ -1,5 +1,11 @@
 # <img width="24px" src="./Logo/256.png" alt="Sonarr"></img> Sonarr
 
+> **🍁 KrZ-W fork.** This is a personal fork (Sonarr v4) that adds language-aware
+> grabbing/importing (VFQ / Quebec French), season-pack partial fill, and a Docker/GHCR
+> deployment. See **[FORK.md](FORK.md)** for the feature list and versioning,
+> **[docs/](docs/)** for the user guide and reference, and **[CHANGELOG.md](CHANGELOG.md)**
+> for the release history. The stock upstream README follows unchanged.
+
 [![Translated](https://translate.servarr.com/widget/servarr/sonarr/svg-badge.svg)](https://translate.servarr.com/engage/servarr/)
 [![Backers on Open Collective](https://opencollective.com/Sonarr/backers/badge.svg)](#backers)
 [![Sponsors on Open Collective](https://opencollective.com/Sonarr/sponsors/badge.svg)](#sponsors)
