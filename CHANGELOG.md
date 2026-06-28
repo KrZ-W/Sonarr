@@ -12,6 +12,19 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.1] — based on Sonarr 4.0.19.2979
+
+Maintenance release — rebased the fork onto upstream Sonarr **4.0.19.2979** (from `4.0.17.2950`).
+All fork features carry forward unchanged; the rebase was clean (no conflicts). The full feature set is unchanged
+from the previous release (below).
+
+### Changed
+
+- Rebased onto upstream Sonarr **4.0.19.2979** (from 4.0.17.2950), picking up upstream's fixes
+  between those versions. No fork feature behavior changed.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.1`.
+
 ## [v4.0.17.2950+krzw.1] — based on Sonarr 4.0.17.2950
 
 First documented fork release. Bundles every feature currently merged into
@@ -75,5 +88,6 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.17.2950+krzw.1...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.1...HEAD
+[v4.0.19.2979+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.1
 [v4.0.17.2950+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.17.2950%2Bkrzw.1
