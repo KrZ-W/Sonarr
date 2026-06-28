@@ -26,13 +26,16 @@ COPY frontend ./frontend
 RUN yarn build --env production
 
 # ----- backend stage -----
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS backend
+# Pin the EXACT SDK upstream Sonarr uses (global.json: 6.0.405 -> .NET 6.0.13
+# runtime). This is load-bearing: newer 6.0.x SDKs resolve the out-of-band
+# System.* / Microsoft.Extensions.* packages (e.g. CodePages 8.0.0) against a
+# newer framework manifest, producing a self-contained bundle whose assembly
+# versions don't match at runtime -> FileLoadException crash-loop at bootstrap.
+# 6.0.405 reproduces the official self-contained build exactly.
+FROM mcr.microsoft.com/dotnet/sdk:6.0.405 AS backend
 WORKDIR /src
 
-# Override the strict SDK pin in global.json so the build uses whatever
-# 6.x SDK ships in the base image. The pin in source targets the dev
-# machine's exact SDK and is not load-bearing for a container build.
-RUN printf '{"sdk":{"version":"6.0.0","rollForward":"latestMajor"}}\n' > global.json
+RUN printf '{"sdk":{"version":"6.0.405"}}\n' > global.json
 COPY src ./src
 COPY Logo ./Logo
 
@@ -46,11 +49,13 @@ RUN dotnet msbuild -restore src/Sonarr.sln \
         -t:PublishAllRids
 
 # ----- runtime stage -----
-# aspnet image (not runtime-deps) because Sonarr v4 binaries reference
-# Microsoft.Extensions.* assemblies that ship with the ASP.NET Core
-# framework, not just the base runtime. Self-contained bundles miss
-# some of those, so non-self-contained + full aspnet image is the
-# reliable path (matches how LSIO ships their image).
+# Framework-dependent on the .NET 6 ASP.NET shared framework, matching upstream
+# (src/Directory.Build.props sets <SelfContained>false</SelfContained>). The crash-loop
+# we hit on 4.0.18+ (System.Text.Encoding.CodePages / Microsoft.Extensions.* FileLoad-
+# Exceptions) was NOT framework-dependent vs self-contained — it was the BUILD SDK: a
+# newer 6.0.x SDK resolves these out-of-band package refs to net7/net8 assets that don't
+# load on the net6 runtime. Pinning the build to SDK 6.0.405 (above) bundles the correct
+# net6.0 assets, exactly as the official Sonarr build does.
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-bookworm-slim AS runtime
 
 ENV PUID=1000 \
