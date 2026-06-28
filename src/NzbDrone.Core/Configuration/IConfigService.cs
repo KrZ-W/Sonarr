@@ -43,6 +43,10 @@ namespace NzbDrone.Core.Configuration
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
         EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
 
+        // Season Pack Upgrade (Media Management)
+        SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
+        double SeasonPackUpgradeThreshold { get; set; }
+
         // Permissions (Media Management)
         bool SetPermissionsLinux { get; set; }
         string ChmodFolder { get; set; }
