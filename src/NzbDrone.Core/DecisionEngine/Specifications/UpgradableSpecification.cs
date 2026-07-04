@@ -43,6 +43,13 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             // Priority CFs are compared BEFORE quality
             if (newPriorityScore > currentPriorityScore)
             {
+                // A priority upgrade is still an upgrade - profiles that forbid upgrades forbid this too
+                if (!qualityProfile.UpgradeAllowed)
+                {
+                    _logger.Debug("Priority CF upgrade blocked: Quality profile '{0}' does not allow upgrades", qualityProfile.Name);
+                    return UpgradeableRejectReason.UpgradesNotAllowed;
+                }
+
                 // Higher priority score - accept regardless of quality difference
                 // But respect the overall CF cutoff
                 if (currentFormatScore >= qualityProfile.CutoffFormatScore)
