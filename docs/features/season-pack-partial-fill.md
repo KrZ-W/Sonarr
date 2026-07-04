@@ -8,8 +8,8 @@ Lets a **full-season pack** be grabbed when it would **fill missing episodes** a
 **upgrade some** (but not necessarily all) episodes of a season — instead of the upstream
 all-or-nothing behavior. Adds an opt-in **Allow Season Pack Upgrades** setting.
 
-Also lets a **single-episode interactive search** grab a matching full-season pack, which
-upstream rejects outright.
+Also lets a **single-episode search** (interactive, automatic, and anime searches alike)
+grab a matching full-season pack, which upstream rejects outright.
 
 ## Why it exists
 
@@ -17,8 +17,8 @@ In stock Sonarr a partially-complete season could never be filled from a season 
 
 - `UpgradeDiskSpecification` rejected the whole grab as soon as **one** already-present
   episode wasn't an upgrade — even if other episodes were missing.
-- A single-episode interactive search was independently rejected by
-  `SingleEpisodeSearchMatchSpecification` as a "Full season pack".
+- A single-episode search (interactive or automatic, standard or anime) was independently
+  rejected by `SingleEpisodeSearchMatchSpecification` as a "Full season pack".
 
 So if you had 8 of 10 episodes, a season pack containing the 2 missing ones was refused.
 
@@ -38,7 +38,8 @@ extends it to single-episode searches (no v5 equivalent for that part).
 When **Threshold** is selected, a companion **threshold percentage**
 (`SeasonPackUpgradeThreshold`, default `100`) controls the cutoff.
 
-> The setting is also available via the `mediamanagement` config API.
+> Also settable via the API: fields `seasonPackUpgrade` and `seasonPackUpgradeThreshold`
+> on `/api/v3/config/mediamanagement`.
 
 ## How it works
 
