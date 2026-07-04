@@ -1,6 +1,6 @@
 # Completed Download Handling (CDH) Interval
 
-> **Status:** stable · **Since:** `v4.0.17.2950+krzw.1` · **Surface:** Settings → Download Clients
+> **Status:** stable · **Since:** `v4.0.17.2950+krzw.1` · **Surface:** API only (`/api/v3/config/downloadclient`) — no UI field
 
 ## What it does
 
@@ -25,11 +25,12 @@ wedged run obvious: a "run starting" line with no matching completion.
 
 ## Settings
 
-**Settings → Download Clients** gains a CDH interval (minutes):
+The interval is **API-only** — there is no field in the web UI. It lives in the
+download-client config, field `checkForFinishedDownloadInterval` (minutes):
 
-| Setting | Default | Notes |
+| Setting (API field) | Default | Notes |
 |---|---|---|
-| Completed Download Handling interval | `1` | Clamped to **≥ 1** minute; re-applied live when settings are saved (no restart needed). |
+| `checkForFinishedDownloadInterval` | `1` | Clamped to **≥ 1** minute; re-applied live when the config is saved (no restart needed). |
 
 ## Logging behavior
 
@@ -43,9 +44,23 @@ A start line with no completion = a run that is still going or has hung.
 
 ## Configuration
 
-1. **Settings → Download Clients** — set the CDH interval to a value that leaves room for
-   manual operations (e.g. `2`–`5` minutes if you do frequent manual imports).
-2. Save — it takes effect immediately.
+Set it via the API (there is no UI field). Read the current config, then PUT it back
+with the new interval — e.g. `2`–`5` minutes if you do frequent manual imports:
+
+```bash
+BASE="http://localhost:8989"; KEY="<your-api-key>"
+
+# read current value
+curl -s -H "X-Api-Key: $KEY" "$BASE/api/v3/config/downloadclient" | jq
+
+# set the interval to 5 minutes (id is always 1)
+curl -s -X PUT -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
+  -d "$(curl -s -H "X-Api-Key: $KEY" "$BASE/api/v3/config/downloadclient" \
+        | jq '.checkForFinishedDownloadInterval = 5')" \
+  "$BASE/api/v3/config/downloadclient/1"
+```
+
+It takes effect immediately — no restart needed.
 
 ## Source
 
