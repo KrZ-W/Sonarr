@@ -10,7 +10,11 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Priority CF upgrades respect Upgrades Allowed:** a profile with upgrades disabled
+  no longer auto-replaces files when a release carries a higher priority CF score.
+  (Import stays permissive, matching upstream: the flag is a grab-side gate.)
 
 ## [v4.0.19.2979+krzw.3] — based on Sonarr 4.0.19.2979
 
