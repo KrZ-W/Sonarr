@@ -72,7 +72,7 @@ When **Threshold** is selected, a companion **threshold percentage**
 
 ## Source
 
-Commit: `8db20a889` (merge `6b0ba30ef`). Key files:
+Commit: `06fcf377e`. Key files:
 `MediaFiles/SeasonPackUpgradeType.cs` (enum `All`/`Threshold`/`Any`),
 `DecisionEngine/Specifications/UpgradeDiskSpecification.cs`,
 `DecisionEngine/Specifications/Search/SingleEpisodeSearchMatchSpecification.cs`,

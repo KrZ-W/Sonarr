@@ -59,6 +59,6 @@ sure your custom formats + `MinFormatScore` actually express the language you wa
 
 ## Source
 
-Commit: `cd099a33d`. Key files:
+Commit: `17d4dd231`. Key files:
 `MediaFiles/EpisodeImport/Specifications/MinimumCustomFormatScoreSpecification.cs`,
 `MediaFiles/EpisodeImport/ImportRejectionReason.cs`.

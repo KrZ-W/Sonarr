@@ -31,4 +31,4 @@ small, focused parsing fix — there are **no settings** and no behavior to conf
 
 ## Source
 
-Commit: `bc175ac96`. Key file: `Parser/IsoLanguages.cs`.
+Commit: `9034942c3`. Key file: `Parser/IsoLanguages.cs`.
