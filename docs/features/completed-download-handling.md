@@ -64,7 +64,7 @@ It takes effect immediately — no restart needed.
 
 ## Source
 
-Commits: `e680bd144` (configurable interval), `8192899fe` (run logging). Key files:
+Commits: `e14b4a027` (configurable interval), `a72681500` (run logging). Key files:
 `Configuration/ConfigService.cs`, `Jobs/TaskManager.cs`
 (`GetRefreshMonitoredInterval()`), `Download/DownloadProcessingService.cs`,
 `Sonarr.Api.V3/Config/DownloadClientConfigResource.cs`.

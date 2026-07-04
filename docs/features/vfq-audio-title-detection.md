@@ -91,7 +91,7 @@ survives even a generic release name. This is a port of the same Radarr fix.
 
 ## Source
 
-Commit: `c54424f66`. Key files:
+Commit: `6499abf71`. Key files:
 `CustomFormats/Specifications/AudioTitleSpecification.cs` (`ImplementationName = "Audio Title"`),
 `CustomFormats/CustomFormatInput.cs`, `CustomFormats/CustomFormatCalculationService.cs`,
 `MediaFiles/MediaInfo/MediaInfoModel.cs`, `MediaFiles/MediaInfo/VideoFileInfoReader.cs`.

@@ -91,6 +91,7 @@ docker build -t sonarr-fork .
 
 ## Source
 
-Commits: `77f8e6b63` (Dockerfile + workflow + entrypoint, ffprobe), `93d6592a6`
-(`-o` GID/UID reuse). Key files: `Dockerfile`, `docker/entrypoint.sh`, `.dockerignore`,
+Commits: `889946b78` (Dockerfile + workflow + entrypoint, ffprobe), `5f226e659`
+(`-o` GID/UID reuse), `5bb406f4f` (SDK pinned to 6.0.405 — newer 6.0.4xx SDKs produced
+an image that crash-looped at runtime; do not unpin without boot-testing). Key files: `Dockerfile`, `docker/entrypoint.sh`, `.dockerignore`,
 `.github/workflows/docker-image.yml`.

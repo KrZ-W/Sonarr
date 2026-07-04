@@ -45,7 +45,7 @@ Rules:
 
 ## Source
 
-Commit: `409d77b50`. Key files: `Configuration/ConfigService.cs`,
+Commit: `94de4c188`. Key files: `Configuration/ConfigService.cs`,
 `Indexers/IndexerStatusService.cs`, `ThingiProvider/Status/ProviderStatusServiceBase.cs`,
 `Sonarr.Api.V3/Config/IndexerConfigResource.cs`,
 `frontend/src/Settings/Indexers/Options/IndexerOptions.js`.

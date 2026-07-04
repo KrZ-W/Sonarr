@@ -81,8 +81,8 @@ instead of only a bare delta.
 
 ## Source
 
-Commits: `680828ae6` (per-CF flag), `9dcde7ff4` (grab), `6355393da` (import),
-`9015a97bc` (rejection messages), `4c955e109` (tests). Key files:
+Commits: `91c955a20` (per-CF flag), `38a5f9b68` (grab), `453ff6cd3` (import),
+`98154b879` (rejection messages), `7114d0fab` (tests). Key files:
 `Profiles/ProfileFormatItem.cs`, `Profiles/Qualities/QualityProfile.cs`,
 `DecisionEngine/Specifications/UpgradableSpecification.cs`,
 `DecisionEngine/DownloadDecisionComparer.cs`,
