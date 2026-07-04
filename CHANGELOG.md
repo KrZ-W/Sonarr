@@ -64,7 +64,8 @@ First documented fork release. Bundles every feature currently merged into
   interactive search grab a matching full-season pack.
   See [docs](docs/features/season-pack-partial-fill.md).
 - **Configurable Completed Download Handling interval** — a configurable CDH run
-  interval (default 1 min) in *Settings → Download Clients*, plus per-run start/duration
+  interval (default 1 min; API-only, `checkForFinishedDownloadInterval` on
+  `/api/v3/config/downloadclient`, no UI field), plus per-run start/duration
   logging, so a slow or hung CDH no longer silently starves manually-queued disk
   commands. See [docs](docs/features/completed-download-handling.md).
 - **Configurable indexer cooldown** — `IndexerCooldownPeriods` (CSV of minutes) in

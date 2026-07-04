@@ -101,9 +101,12 @@ the grab rejected because some episodes are already present.
 **Goal:** stop a slow Completed Download Handling run from starving your manual imports
 and renames (they share a single disk-access slot).
 
-1. **Settings → Download Clients** — set the **Completed Download Handling interval** to
-   leave a quiet gap after each run (e.g. `2`–`5` minutes).
-2. Save (applies immediately).
+1. Set the interval via the API (**there is no UI field** for this setting) — field
+   `checkForFinishedDownloadInterval` on `/api/v3/config/downloadclient`, e.g. `2`–`5`
+   minutes to leave a quiet gap after each run. See the
+   [full reference](features/completed-download-handling.md#configuration) for a
+   copy-paste `curl` command.
+2. It applies immediately (no restart).
 3. Watch the log: each run logs its start and duration; a run that **exceeds** the
    interval is logged at **Warn**, and a start with no completion means it's stuck.
 
