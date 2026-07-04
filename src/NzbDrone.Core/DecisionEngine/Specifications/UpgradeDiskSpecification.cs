@@ -1,11 +1,15 @@
+using System;
 using System.Linq;
 using NLog;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.History;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -14,16 +18,19 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         private readonly UpgradableSpecification _upgradableSpecification;
         private readonly IConfigService _configService;
         private readonly ICustomFormatCalculationService _formatService;
+        private readonly IHistoryService _historyService;
         private readonly Logger _logger;
 
         public UpgradeDiskSpecification(UpgradableSpecification upgradableSpecification,
                                         IConfigService configService,
                                         ICustomFormatCalculationService formatService,
+                                        IHistoryService historyService,
                                         Logger logger)
         {
             _upgradableSpecification = upgradableSpecification;
             _configService = configService;
             _formatService = formatService;
+            _historyService = historyService;
             _logger = logger;
         }
 
@@ -66,14 +73,33 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Accept();
             }
 
-            // Missing episodes have no file on disk to compare against, so they are always fillable.
-            var missingEpisodesCount = subject.Episodes.Count(c => c.EpisodeFileId == 0);
-            var upgradedCount = missingEpisodesCount;
-            _logger.Debug("{0} episodes are missing from disk and are considered upgradable.", missingEpisodesCount);
+            var seasonPackUpgrade = _configService.SeasonPackUpgrade;
+            var seasonPackUpgradeThreshold = _configService.SeasonPackUpgradeThreshold;
+
+            // Unmonitored episodes without a file were deliberately skipped by the user, so they
+            // are neither slots the pack usefully fills nor a reason to reject it - they are left
+            // out of both sides of the ratio.
+            var missingEpisodes = subject.Episodes.Where(c => c.EpisodeFileId == 0 && c.Monitored).ToList();
+
+            // In Any/Threshold mode a missing episode only counts if this release can actually
+            // fill it. All mode keeps the original behavior (missing episodes always count).
+            var fillableEpisodesCount = seasonPackUpgrade == SeasonPackUpgradeType.All
+                ? missingEpisodes.Count
+                : missingEpisodes.Count(c => !PackPreviouslyImportedWithoutEpisode(c, subject));
+
+            var upgradedCount = fillableEpisodesCount;
+            _logger.Debug("{0} monitored episodes are missing from disk and fillable by this release.", fillableEpisodesCount);
 
             var existingEpisodeFiles = subject.Episodes.Where(c => c.EpisodeFileId != 0)
                                                        .Select(c => c.EpisodeFile.Value)
                                                        .ToList();
+
+            var consideredCount = missingEpisodes.Count + existingEpisodeFiles.Count;
+
+            if (consideredCount == 0)
+            {
+                return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, "Season pack has no monitored missing episodes to fill and no existing files to upgrade");
+            }
 
             // Every existing file that is itself a genuine upgrade also adds to the pack's value.
             foreach (var file in existingEpisodeFiles)
@@ -84,11 +110,9 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
             }
 
-            var seasonPackUpgrade = _configService.SeasonPackUpgrade;
-            var seasonPackUpgradeThreshold = _configService.SeasonPackUpgradeThreshold;
-            var upgradablePercentage = (double)upgradedCount / totalEpisodesInPack * 100;
+            var upgradablePercentage = (double)upgradedCount / consideredCount * 100;
 
-            _logger.Debug("Season pack upgradable episodes: {0}/{1} ({2:0.##}%). Mode: {3}, Threshold: {4}%", upgradedCount, totalEpisodesInPack, upgradablePercentage, seasonPackUpgrade, seasonPackUpgradeThreshold);
+            _logger.Debug("Season pack upgradable episodes: {0}/{1} ({2:0.##}%). Mode: {3}, Threshold: {4}%", upgradedCount, consideredCount, upgradablePercentage, seasonPackUpgrade, seasonPackUpgradeThreshold);
 
             if (seasonPackUpgrade == SeasonPackUpgradeType.Any)
             {
@@ -107,7 +131,47 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
             }
 
-            return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, "Season pack does not meet the upgrade criteria. Upgradable: {0}/{1} ({2:0.##}%), Mode: {3}, Threshold: {4}%", upgradedCount, totalEpisodesInPack, upgradablePercentage, seasonPackUpgrade, seasonPackUpgradeThreshold);
+            return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, "Season pack does not meet the upgrade criteria. Upgradable: {0}/{1} ({2:0.##}%), Mode: {3}, Threshold: {4}%", upgradedCount, consideredCount, upgradablePercentage, seasonPackUpgrade, seasonPackUpgradeThreshold);
+        }
+
+        private bool PackPreviouslyImportedWithoutEpisode(Episode episode, RemoteEpisode subject)
+        {
+            // If this same release was grabbed for this episode before and that download completed
+            // (other episodes were imported from it) while this episode is still missing, the pack
+            // simply does not contain the episode - grabbing the same release again can never fill
+            // the slot and would loop forever once the history grace period expires. A grab with no
+            // imports at all is left alone so failed downloads can still be retried.
+            if (subject.Release?.Title == null)
+            {
+                return false;
+            }
+
+            var mostRecent = _historyService.MostRecentForEpisode(episode.Id);
+
+            if (mostRecent == null || mostRecent.EventType != EpisodeHistoryEventType.Grabbed)
+            {
+                return false;
+            }
+
+            if (!subject.Release.Title.Equals(mostRecent.SourceTitle, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return false;
+            }
+
+            if (mostRecent.DownloadId.IsNullOrWhiteSpace())
+            {
+                return false;
+            }
+
+            var wasImported = _historyService.FindByDownloadId(mostRecent.DownloadId)
+                                             .Any(h => h.EventType == EpisodeHistoryEventType.DownloadFolderImported);
+
+            if (wasImported)
+            {
+                _logger.Debug("Episode [{0}] is missing but the same release was previously imported without it, not counting it as fillable.", episode.Id);
+            }
+
+            return wasImported;
         }
 
         private DownloadSpecDecision CheckUpgradeSpecification(EpisodeFile file, QualityProfile qualityProfile, RemoteEpisode subject)
