@@ -29,18 +29,35 @@ survives even a generic release name. This is a port of the same Radarr fix.
 
 ## Configuration
 
-1. **Settings → Custom Formats → (your VFQ format) → Add Condition → Audio Title.**
-2. Enter a regex matching the audio-track labels you see in your VFQ files, e.g.:
+> **Important — use a separate custom format.** Do **not** add the Audio Title
+> condition to your existing title-based VFQ format. Conditions are grouped by type
+> and the groups are **ANDed**, and audio titles only exist for *files* (import /
+> rescan) — remote releases being evaluated for grab never have them. A format that
+> combines Release Title and Audio Title conditions therefore matches **nothing at
+> grab time**, silently disabling your VFQ preference.
+
+1. **Settings → Custom Formats → Add** — create a new format, e.g. **`VFQ (Audio)`**,
+   alongside (not inside) your title-based VFQ format.
+2. Add an **Audio Title** condition (Required) with a regex matching the audio-track
+   labels you see in your VFQ files, e.g.:
 
    ```
-   VFQ|VOQ|Qu[ée]b|Canad
+   \bVFQ\b|\bVOQ\b|Qu[eé]b|Canad
    ```
 
    (`Canad` also catches `French [Canada]`.)
-3. Save the custom format.
-4. **Recommended:** in your quality profile, give the VFQ format a score **and tick
-   Priority** (see [Custom Format Priority Mode](custom-format-priority-mode.md)) so a
-   content-detected VFQ release wins over a higher-quality non-VFQ release.
+3. Add a **negated, Required "Release Title"** condition containing your title-VFQ
+   regex ("title not already VFQ"). This makes the two formats mutually exclusive, so
+   a file scores VFQ exactly once — via the title format *or* the audio format, never
+   both. If you have other exclusions on the title format (e.g. "Not VF2"), mirror
+   them here too.
+4. Save.
+5. In your quality profile, give `VFQ (Audio)` the **same score and the same Priority
+   flag** as the title VFQ format (see
+   [Custom Format Priority Mode](custom-format-priority-mode.md)). Equal scores matter:
+   a candidate release can only ever match the *title* format at grab, so if the audio
+   format scored higher, a file detected via audio could never be quality-upgraded
+   (every candidate would look like a priority downgrade).
 
 > **Tip — find the actual labels:** open an episode file's **Media Info** in Sonarr, or
 > run `ffprobe yourfile.mkv` and look at each audio stream's `title`. Build your regex
@@ -54,8 +71,15 @@ survives even a generic release name. This is a port of the same Radarr fix.
   files have no audio titles to match.
 - **Empty titles match nothing.** Files whose audio streams have no title tag simply
   don't satisfy the condition.
-- **Works alongside Release Title.** Combine an Audio Title condition with title-based
-  conditions in the same custom format if you want either signal to fire.
+- **Grab time is title-only.** Audio Title conditions can never match a remote
+  release (there is no file to probe yet), so this feature cannot *cause* a grab —
+  it corrects the score **after import**, protecting a content-detected VFQ file from
+  being replaced. That is also why the condition must live in its own format (see
+  Configuration above), never combined with Release Title conditions.
+- **Quality upgrades still flow.** With the mutual-exclusion setup above, a file
+  detected via audio scores the same priority as a title-tagged VFQ release, so a
+  better-quality title-VFQ candidate compares as an equal-priority quality upgrade
+  rather than a priority downgrade.
 
 ## Related
 

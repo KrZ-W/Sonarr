@@ -21,7 +21,11 @@ For the *why* and full reference, follow the links into [features/](features/).
 non-VFQ one exists, but still upgrade quality *within* VFQ.
 
 1. **Settings → Custom Formats** — create a `VFQ` custom format (title regex such as
-   `VFQ|VOQ|TRUEFRENCH`, and ideally an [Audio Title condition](#recipe-detect-vfq-from-audio-tracks)).
+   `VFQ|VOQ|TRUEFRENCH`). To also catch VFQ hidden in generic `FRENCH` releases, add a
+   **separate** audio-based format — see
+   [Detect VFQ from audio tracks](#recipe-detect-vfq-from-audio-tracks). Do **not** put
+   an Audio Title condition inside this title format: the condition groups AND together
+   and the format would stop matching at grab time.
 2. **Settings → Profiles → Quality → (your profile)** — find the `VFQ` format, give it a
    positive **score**, and tick the **Priority** checkbox.
 3. Save.
@@ -40,10 +44,16 @@ track's title.
 
 1. Find the real audio labels: open a known-VFQ file's **Media Info** in Sonarr, or run
    `ffprobe yourfile.mkv` and read each audio stream's `title` (e.g. `French [Canada]`).
-2. **Settings → Custom Formats → (your VFQ format) → Add Condition → Audio Title.**
-3. Enter a regex built from what you saw, e.g. `VFQ|VOQ|Qu[ée]b|Canad`.
-4. Save, then flag the format **Priority** in your quality profile (recipe above).
-5. **Trigger a library scan** so existing files re-probe and gain audio titles.
+2. **Settings → Custom Formats → Add** — create a **separate** format, e.g.
+   `VFQ (Audio)` (not a condition inside your title VFQ format — see the warning in
+   the recipe above).
+3. Add an **Audio Title** condition (Required) with a regex built from what you saw,
+   e.g. `\bVFQ\b|\bVOQ\b|Qu[eé]b|Canad`.
+4. Add a **negated, Required Release Title** condition containing your title-VFQ regex,
+   so the two formats are mutually exclusive and a file scores VFQ only once.
+5. Save, then in your quality profile give `VFQ (Audio)` the **same score and Priority
+   flag** as the title VFQ format (recipe above).
+6. **Trigger a library scan** so existing files re-probe and gain audio titles.
 
 > Full reference: [VFQ Audio-Title Detection](features/vfq-audio-title-detection.md).
 
