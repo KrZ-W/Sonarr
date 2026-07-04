@@ -10,7 +10,29 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Season-pack partial fill:** unmonitored missing episodes no longer count as
+  fillable (a pack is never grabbed just to fill episodes you opted out of), and in
+  `Any`/`Threshold` mode a missing episode no longer counts for a release that was
+  previously grabbed and imported without producing a file for it — ending the
+  re-grab-the-same-pack-every-RSS-sync loop. Failed downloads still retry as before.
+  See [docs](docs/features/season-pack-partial-fill.md).
+- **CI:** a manual `docker-release.yml` dispatch now checks out the requested tag —
+  previously it built the default branch HEAD but published it under the release tag,
+  silently mislabeling an immutable release image. The image's `revision` label now
+  records the actually-built commit.
+- **Tests:** removed an unused using directive that broke the test build (`IDE0005`).
+
+### Docs
+
+- The VFQ audio-title guide now prescribes a **separate** `VFQ (Audio)` custom format
+  with a negated title condition — combining Audio Title and Release Title conditions
+  in one format matches nothing at grab time (conditions AND by type group).
+- The CDH interval is documented as **API-only** (`checkForFinishedDownloadInterval`);
+  it never had a Settings UI field.
+- Refreshed post-rebase `Source` hashes, fixed stale tag/image version examples, and
+  added a mandatory image boot-test step to the release procedure.
 
 ## [v4.0.19.2979+krzw.2] — based on Sonarr 4.0.19.2979
 

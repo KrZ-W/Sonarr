@@ -46,6 +46,15 @@ When **Threshold** is selected, a companion **threshold percentage**
   fillable** plus any genuinely-upgradable existing files, and accepts per the configured
   mode/threshold. With **All** (the default) the effective threshold is 100% and behavior
   is unchanged.
+- **Only monitored missing episodes count.** Episodes you deliberately unmonitored are
+  excluded from both sides of the ratio — a pack is never grabbed just to fill episodes
+  you opted out of (and a pack that helps nothing else is rejected outright).
+- **No same-release refill loops (Any/Threshold).** If the identical release was grabbed
+  before and its download imported *without* producing a file for a still-missing
+  episode, the pack demonstrably doesn't contain that episode, so it no longer counts as
+  fillable — otherwise the same pack would be re-grabbed on every RSS sync once the 12 h
+  history grace expired. A previous grab that never imported (failed/stalled download)
+  still counts, so failed-download recovery is unaffected.
 - Per-episode evaluation still routes through the priority-aware `IsUpgradable`, so
   [Custom Format Priority Mode](custom-format-priority-mode.md) behavior is preserved when
   grabbing packs.
