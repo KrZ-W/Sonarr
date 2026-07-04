@@ -9,6 +9,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.DecisionEngine.Specifications;
+using NzbDrone.Core.History;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser;
@@ -463,7 +464,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultMulti.Episodes = new List<Episode>
                                          {
                                              new Episode { EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 1 },
-                                             new Episode { EpisodeFile = null, EpisodeFileId = 0 }
+                                             new Episode { EpisodeFile = null, EpisodeFileId = 0, Monitored = true }
                                          };
 
             Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().BeTrue();
@@ -511,8 +512,8 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultMulti.ParsedEpisodeInfo.Quality = new QualityModel(Quality.Bluray1080p);
             _parseResultMulti.Episodes = new List<Episode>
                                          {
-                                             new Episode { EpisodeFile = null, EpisodeFileId = 0 },
-                                             new Episode { EpisodeFile = null, EpisodeFileId = 0 }
+                                             new Episode { EpisodeFile = null, EpisodeFileId = 0, Monitored = true },
+                                             new Episode { EpisodeFile = null, EpisodeFileId = 0, Monitored = true }
                                          };
 
             Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().BeTrue();
@@ -566,13 +567,123 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
                                              new Episode { EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.SDTV) }, EpisodeFileId = 7 },
                                              new Episode { EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 8 },
                                              new Episode { EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 9 },
-                                             new Episode { EpisodeFile = null, EpisodeFileId = 0 }
+                                             new Episode { EpisodeFile = null, EpisodeFileId = 0, Monitored = true }
                                          };
 
             var result = Subject.IsSatisfiedBy(_parseResultMulti, null);
 
             result.Accepted.Should().BeFalse();
             result.Reason.Should().Be(DownloadRejectionReason.DiskNotUpgrade);
+        }
+
+        [Test]
+        public void should_reject_season_pack_when_mode_is_any_and_only_unmonitored_episodes_are_missing()
+        {
+            GivenProfile(new QualityProfile
+            {
+                Cutoff = Quality.Bluray1080p.Id,
+                Items = Qualities.QualityFixture.GetDefaultQualities(),
+                UpgradeAllowed = true
+            });
+
+            GivenSeasonPackUpgradeMode(SeasonPackUpgradeType.Any);
+
+            _parseResultMulti.ParsedEpisodeInfo.FullSeason = true;
+            _parseResultMulti.ParsedEpisodeInfo.Quality = new QualityModel(Quality.Bluray1080p);
+            _parseResultMulti.Episodes = new List<Episode>
+                                         {
+                                             new Episode { EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 1 },
+                                             new Episode { EpisodeFile = null, EpisodeFileId = 0, Monitored = false }
+                                         };
+
+            var result = Subject.IsSatisfiedBy(_parseResultMulti, null);
+
+            result.Accepted.Should().BeFalse();
+            result.Reason.Should().Be(DownloadRejectionReason.DiskNotUpgrade);
+        }
+
+        [Test]
+        public void should_not_count_missing_episode_when_same_release_was_previously_imported_without_it()
+        {
+            GivenProfile(new QualityProfile
+            {
+                Cutoff = Quality.Bluray1080p.Id,
+                Items = Qualities.QualityFixture.GetDefaultQualities(),
+                UpgradeAllowed = true
+            });
+
+            GivenSeasonPackUpgradeMode(SeasonPackUpgradeType.Any);
+
+            _parseResultMulti.Release = new ReleaseInfo { Title = "Some.Show.S01.1080p.WEB-DL-GROUP" };
+            _parseResultMulti.ParsedEpisodeInfo.FullSeason = true;
+            _parseResultMulti.ParsedEpisodeInfo.Quality = new QualityModel(Quality.Bluray1080p);
+            _parseResultMulti.Episodes = new List<Episode>
+                                         {
+                                             new Episode { Id = 1, EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 1 },
+                                             new Episode { Id = 2, EpisodeFile = null, EpisodeFileId = 0, Monitored = true }
+                                         };
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.MostRecentForEpisode(2))
+                  .Returns(new EpisodeHistory
+                  {
+                      EventType = EpisodeHistoryEventType.Grabbed,
+                      SourceTitle = "Some.Show.S01.1080p.WEB-DL-GROUP",
+                      DownloadId = "ABC123"
+                  });
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.FindByDownloadId("ABC123"))
+                  .Returns(new List<EpisodeHistory>
+                  {
+                      new EpisodeHistory { EventType = EpisodeHistoryEventType.Grabbed, DownloadId = "ABC123" },
+                      new EpisodeHistory { EventType = EpisodeHistoryEventType.DownloadFolderImported, DownloadId = "ABC123" }
+                  });
+
+            var result = Subject.IsSatisfiedBy(_parseResultMulti, null);
+
+            result.Accepted.Should().BeFalse();
+            result.Reason.Should().Be(DownloadRejectionReason.DiskNotUpgrade);
+        }
+
+        [Test]
+        public void should_count_missing_episode_when_previous_grab_of_same_release_never_imported()
+        {
+            GivenProfile(new QualityProfile
+            {
+                Cutoff = Quality.Bluray1080p.Id,
+                Items = Qualities.QualityFixture.GetDefaultQualities(),
+                UpgradeAllowed = true
+            });
+
+            GivenSeasonPackUpgradeMode(SeasonPackUpgradeType.Any);
+
+            _parseResultMulti.Release = new ReleaseInfo { Title = "Some.Show.S01.1080p.WEB-DL-GROUP" };
+            _parseResultMulti.ParsedEpisodeInfo.FullSeason = true;
+            _parseResultMulti.ParsedEpisodeInfo.Quality = new QualityModel(Quality.Bluray1080p);
+            _parseResultMulti.Episodes = new List<Episode>
+                                         {
+                                             new Episode { Id = 1, EpisodeFile = new EpisodeFile { Quality = new QualityModel(Quality.Bluray1080p) }, EpisodeFileId = 1 },
+                                             new Episode { Id = 2, EpisodeFile = null, EpisodeFileId = 0, Monitored = true }
+                                         };
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.MostRecentForEpisode(2))
+                  .Returns(new EpisodeHistory
+                  {
+                      EventType = EpisodeHistoryEventType.Grabbed,
+                      SourceTitle = "Some.Show.S01.1080p.WEB-DL-GROUP",
+                      DownloadId = "ABC123"
+                  });
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.FindByDownloadId("ABC123"))
+                  .Returns(new List<EpisodeHistory>
+                  {
+                      new EpisodeHistory { EventType = EpisodeHistoryEventType.Grabbed, DownloadId = "ABC123" }
+                  });
+
+            Subject.IsSatisfiedBy(_parseResultMulti, null).Accepted.Should().BeTrue();
         }
 
         [Test]
