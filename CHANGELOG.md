@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.3] — based on Sonarr 4.0.19.2979
+
 ### Fixed
 
 - **Season-pack partial fill:** unmonitored missing episodes no longer count as
@@ -33,6 +37,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   it never had a Settings UI field.
 - Refreshed post-rebase `Source` hashes, fixed stale tag/image version examples, and
   added a mandatory image boot-test step to the release procedure.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.3`.
 
 ## [v4.0.19.2979+krzw.2] — based on Sonarr 4.0.19.2979
 
@@ -126,7 +132,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.2...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.3...HEAD
+[v4.0.19.2979+krzw.3]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.3
 [v4.0.19.2979+krzw.2]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.2
 [v4.0.19.2979+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.1
 [v4.0.17.2950+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.17.2950%2Bkrzw.1
