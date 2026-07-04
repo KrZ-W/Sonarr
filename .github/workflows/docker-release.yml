@@ -32,6 +32,10 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v5
+        with:
+          # On workflow_dispatch, build the requested tag's commit — without this the
+          # default branch HEAD would be built but published under the release tag.
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Compute image tag from git tag
         id: version
@@ -45,6 +49,7 @@ jobs:
           image="${image,,}"                  # GHCR repository names must be lowercase
           echo "git_tag=${raw}" >> "$GITHUB_OUTPUT"
           echo "docker_tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "image=${image}" >> "$GITHUB_OUTPUT"
           echo "Building ${image}:${docker_tag} from ${raw}"
 
@@ -67,7 +72,7 @@ jobs:
           tags: ${{ steps.version.outputs.image }}:${{ steps.version.outputs.docker_tag }}
           labels: |
             org.opencontainers.image.version=${{ steps.version.outputs.git_tag }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
