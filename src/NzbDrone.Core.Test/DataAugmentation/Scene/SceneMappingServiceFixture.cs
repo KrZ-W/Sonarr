@@ -474,6 +474,25 @@ namespace NzbDrone.Core.Test.DataAugmentation.Scene
             result.Should().HaveCount(1);
         }
 
+        [Test]
+        public void should_include_user_mappings_in_scene_names_for_any_season()
+        {
+            var userMapping = new SceneMapping
+            {
+                Title = "Le Titre Québécois",
+                ParseTerm = "letitrequebecois",
+                SearchTerm = "Le Titre Quebecois",
+                TvdbId = 100,
+                Type = SceneMappingService.UserMappingType
+            };
+
+            Mocker.GetMock<ISceneMappingRepository>().Setup(c => c.All()).Returns(new List<SceneMapping> { userMapping });
+
+            var names = Subject.GetSceneNames(100, new List<int> { 3 }, new List<int>());
+
+            names.Should().Contain("Le Titre Quebecois");
+        }
+
         private Series GivenSeries()
         {
             return new Series
