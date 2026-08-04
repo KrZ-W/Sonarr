@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.6] — based on Sonarr 4.0.19.2979
+
 ### Fixed
 
 - **User scene mapping import robustness:** the collision guard no longer calls the
@@ -28,6 +32,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   explicit ligatures, covering characters the hand-written list missed (narrow
   no-break space, non-breaking hyphen). A title still unsearchable after folding is
   skipped with a warning instead of stored as a row that never contributes a query.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.6`.
 
 ## [v4.0.19.2979+krzw.5] — based on Sonarr 4.0.19.2979
 
@@ -178,7 +184,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.5...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.6...HEAD
+[v4.0.19.2979+krzw.6]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.6
 [v4.0.19.2979+krzw.5]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.5
 [v4.0.19.2979+krzw.4]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.4
 [v4.0.19.2979+krzw.3]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.3
