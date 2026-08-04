@@ -26,6 +26,16 @@ namespace Sonarr.Api.V3.SceneMappings
         {
             var summary = new UserSceneMappingImportSummaryResource();
 
+            if (resources == null)
+            {
+                return summary;
+            }
+
+            // Built once per request rather than a lookup per title: FindByTitle also throws
+            // MultipleSeriesFoundException when two library series share a clean title (The
+            // Office UK/US), which would abort an import that has already inserted rows.
+            var libraryTitles = _seriesService.GetAllSeries().ToLookup(s => s.CleanTitle, s => s.TvdbId);
+
             foreach (var resource in resources)
             {
                 var series = _seriesService.FindByTvdbId(resource.TvdbId);
@@ -41,17 +51,21 @@ namespace Sonarr.Api.V3.SceneMappings
                     continue;
                 }
 
-                var titles = (resource.MissingFrenchTitles ?? new List<UserSceneMappingImportEntryResource>())
-                    .Where(t => t.Title.IsNotNullOrWhiteSpace())
-                    .Where(t => TitleIsNotAnotherSeries(t.Title, series))
+                var candidates = (resource.MissingFrenchTitles ?? new List<UserSceneMappingImportEntryResource>())
+                    .Where(t => t?.Title.IsNotNullOrWhiteSpace() == true)
+                    .ToList();
+
+                var titles = candidates
+                    .Where(t => TitleIsNotAnotherSeries(libraryTitles, t.Title, series))
                     .Select(t => new SceneMapping { Title = t.Title, Comment = t.Region })
                     .ToList();
 
                 var added = _sceneMappingService.UpsertUserMappings(titles, series);
+                var addedTitles = added.Select(m => m.Title).Distinct().Count();
 
                 summary.SeriesProcessed++;
-                summary.TitlesAdded += added.Count;
-                summary.TitlesSkipped += titles.Count - added.Count;
+                summary.TitlesAdded += addedTitles;
+                summary.TitlesSkipped += candidates.Count - addedTitles;
             }
 
             return summary;
@@ -59,11 +73,12 @@ namespace Sonarr.Api.V3.SceneMappings
 
         // A user mapping equal to another library series' title would hijack that series'
         // release parsing; the mapping table guard in UpsertUserMappings can't see series titles.
-        private bool TitleIsNotAnotherSeries(string title, NzbDrone.Core.Tv.Series series)
+        // Compares the parse terms actually stored, so a title whose folded spelling collides is
+        // caught too.
+        private static bool TitleIsNotAnotherSeries(ILookup<string, int> libraryTitles, string title, NzbDrone.Core.Tv.Series series)
         {
-            var other = _seriesService.FindByTitle(title);
-
-            return other == null || other.TvdbId == series.TvdbId;
+            return SceneMappingService.GetParseTerms(title)
+                .All(parseTerm => libraryTitles[parseTerm].All(tvdbId => tvdbId == series.TvdbId));
         }
     }
 }
