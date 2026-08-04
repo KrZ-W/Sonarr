@@ -7,7 +7,9 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DataAugmentation.Scene;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Core.Tv;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.DataAugmentation.Scene
@@ -370,6 +372,121 @@ namespace NzbDrone.Core.Test.DataAugmentation.Scene
             Mocker.GetMock<ISceneMappingRepository>().Setup(c => c.All()).Returns(mappings);
 
             Subject.FindTvdbId("Amareto", "Amareto.S01E01.720p.WEB-DL-Viva", 4).Should().Be(101);
+        }
+
+        [Test]
+        public void should_never_clear_user_mappings_when_updating_providers()
+        {
+            GivenProviders(new[] { _provider1 });
+
+            Mocker.GetMock<ISceneMappingRepository>().Setup(c => c.All()).Returns(_fakeMappings);
+
+            Subject.Execute(new UpdateSceneMappingCommand());
+
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.Clear(SceneMappingService.UserMappingType), Times.Never());
+        }
+
+        [Test]
+        public void should_add_user_mapping_and_set_fields()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Ma Série Québécoise", Comment = "QC" } }, series);
+
+            result.Should().HaveCount(1);
+
+            var mapping = result.Single();
+            mapping.TvdbId.Should().Be(series.TvdbId);
+            mapping.Type.Should().Be(SceneMappingService.UserMappingType);
+            mapping.SearchTerm.Should().Be("Ma Série Québécoise");
+            mapping.ParseTerm.Should().Be("Ma Série Québécoise".CleanSeriesTitle());
+            mapping.SeasonNumber.Should().BeNull();
+            mapping.SceneSeasonNumber.Should().BeNull();
+            mapping.SceneOrigin.Should().BeNull();
+            mapping.Comment.Should().Be("QC");
+
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.Is<List<SceneMapping>>(l => l.Count == 1)), Times.Once());
+        }
+
+        [Test]
+        public void should_normalize_user_mapping_search_term_to_latin1()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Cœur d’Hiver — La Saga…" } }, series);
+
+            result.Single().SearchTerm.Should().Be("Coeur d'Hiver - La Saga...");
+            result.Single().SearchTerm.All(c => c <= 255).Should().BeTrue();
+        }
+
+        [Test]
+        public void should_not_add_user_mapping_matching_own_series_title()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "My Series" } }, series);
+
+            result.Should().BeEmpty();
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.IsAny<List<SceneMapping>>()), Times.Never());
+        }
+
+        [Test]
+        public void should_not_add_user_mapping_that_already_exists_for_series()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings(new SceneMapping { Title = "Ma Série", ParseTerm = "Ma Série".CleanSeriesTitle(), SearchTerm = "Ma Série", TvdbId = series.TvdbId, Type = "ServicesProvider" });
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Ma Série" } }, series);
+
+            result.Should().BeEmpty();
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.IsAny<List<SceneMapping>>()), Times.Never());
+        }
+
+        [Test]
+        public void should_not_add_user_mapping_owned_by_another_series()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings(new SceneMapping { Title = "Ma Série", ParseTerm = "Ma Série".CleanSeriesTitle(), SearchTerm = "Ma Série", TvdbId = 999, Type = "ServicesProvider" });
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Ma Série" } }, series);
+
+            result.Should().BeEmpty();
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.IsAny<List<SceneMapping>>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_not_add_duplicate_user_mappings_within_batch()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping>
+            {
+                new SceneMapping { Title = "Ma Série" },
+                new SceneMapping { Title = "MA SÉRIE" }
+            }, series);
+
+            result.Should().HaveCount(1);
+        }
+
+        private Series GivenSeries()
+        {
+            return new Series
+            {
+                TvdbId = 100,
+                Title = "My Series",
+                CleanTitle = "My Series".CleanSeriesTitle()
+            };
+        }
+
+        private void GivenExistingMappings(params SceneMapping[] mappings)
+        {
+            Mocker.GetMock<ISceneMappingRepository>().Setup(c => c.All()).Returns(mappings.ToList());
         }
 
         private void AssertNoUpdate()
