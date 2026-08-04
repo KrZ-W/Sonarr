@@ -12,6 +12,19 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.7] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Curly double quotes no longer fold to apostrophe.** `"Mon Titre"` (U+201C/201D)
+  was folded to `'Mon Titre'` instead of `"Mon Titre"`, producing a search term
+  indexers would never match.
+- **Modifier-letter apostrophe (U+02BC) is now folded.** Titles using the
+  typographically correct apostrophe `ʼ` (common in transliterated names) were
+  silently rejected because the character's code point exceeds Latin-1.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.7`.
+
 ## [v4.0.19.2979+krzw.6] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -184,7 +197,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.6...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.7...HEAD
+[v4.0.19.2979+krzw.7]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.7
 [v4.0.19.2979+krzw.6]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.6
 [v4.0.19.2979+krzw.5]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.5
 [v4.0.19.2979+krzw.4]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.4
