@@ -417,8 +417,71 @@ namespace NzbDrone.Core.Test.DataAugmentation.Scene
 
             var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Cœur d’Hiver — La Saga…" } }, series);
 
-            result.Single().SearchTerm.Should().Be("Coeur d'Hiver - La Saga...");
-            result.Single().SearchTerm.All(c => c <= 255).Should().BeTrue();
+            result.Should().OnlyContain(m => m.SearchTerm == "Coeur d'Hiver - La Saga...");
+            result.Should().OnlyContain(m => m.SearchTerm.All(c => c <= 255));
+        }
+
+        [Test]
+        public void should_map_both_spellings_when_folding_changes_the_parse_term()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Cœur d'Hiver" } }, series);
+
+            // Releases can be named with either the ligature or the folded spelling; we search
+            // under the folded one, so both must resolve.
+            result.Select(m => m.ParseTerm).Should().BeEquivalentTo(new[] { "cœurdhiver", "coeurdhiver" });
+            result.Should().OnlyContain(m => m.Type == SceneMappingService.UserMappingType);
+        }
+
+        [Test]
+        public void should_fold_typography_by_unicode_category()
+        {
+            // Narrow no-break space (U+202F) and non-breaking hyphen (U+2011) are real French
+            // typography and were missed by the previous hand-written fold list.
+            SceneMappingService.NormalizeSearchTerm("Ma Série‑Culte").Should().Be("Ma Série-Culte");
+        }
+
+        [Test]
+        public void should_skip_user_mapping_that_cannot_be_searched()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Медвежонок" } }, series);
+
+            result.Should().BeEmpty();
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.IsAny<List<SceneMapping>>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_skip_user_mapping_whose_folded_spelling_collides_with_another_series()
+        {
+            var series = GivenSeries();
+
+            GivenExistingMappings(new SceneMapping { Title = "Coeur d'Hiver", ParseTerm = "coeurdhiver", SearchTerm = "Coeur d'Hiver", TvdbId = 999, Type = "ServicesProvider" });
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "Cœur d'Hiver" } }, series);
+
+            // Neither spelling is inserted: a title is taken whole or not at all.
+            result.Should().BeEmpty();
+            Mocker.GetMock<ISceneMappingRepository>().Verify(c => c.InsertMany(It.IsAny<List<SceneMapping>>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_skip_user_mapping_with_null_title()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = null } }, series);
+
+            result.Should().BeEmpty();
         }
 
         [Test]
