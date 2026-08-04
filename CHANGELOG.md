@@ -10,7 +10,20 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **User scene mappings:** new `POST /api/v3/scenemapping/user/import` endpoint
+  bulk-upserts missing French/Quebec series titles as `Type=User` scene mappings
+  from the curated dataset format
+  (`[{tvdbId, imdbId, seriesTitle, year, missingFrenchTitles:[{title, region}]}]`);
+  idempotent, library series only, `region` stored in the mapping comment, returns
+  an added/skipped/not-found summary. User rows are refresh-proof by design (mapping
+  updates clear per provider type only), participate in search scene titles, release
+  parsing, and import identification, and show on the series page's Alternate Titles
+  list. Search terms are normalized to Latin-1 (`œ→oe`, `’→'`, `—→-`) so the
+  scene-name search filter keeps them; titles colliding with another series' parse
+  term are refused to protect release parsing. See
+  [features/user-scene-mappings.md](docs/features/user-scene-mappings.md).
 
 ## [v4.0.19.2979+krzw.4] — based on Sonarr 4.0.19.2979
 

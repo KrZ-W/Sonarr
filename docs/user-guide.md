@@ -10,6 +10,7 @@ For the *why* and full reference, follow the links into [features/](features/).
 - [Recipe: Stop wrong-language files from importing](#recipe-stop-wrong-language-files-from-importing)
 - [Recipe: Fill a partial season from a season pack](#recipe-fill-a-partial-season-from-a-season-pack)
 - [Recipe: Keep CDH from blocking manual imports](#recipe-keep-cdh-from-blocking-manual-imports)
+- [Recipe: Add missing French/Quebec series titles](#recipe-add-missing-frenchquebec-series-titles)
 - [Recipe: Tune indexer cooldown](#recipe-tune-indexer-cooldown)
 - [Recipe: Run the fork in Docker](#recipe-run-the-fork-in-docker)
 
@@ -111,6 +112,38 @@ and renames (they share a single disk-access slot).
    interval is logged at **Warn**, and a start with no completion means it's stuck.
 
 > Full reference: [Completed Download Handling Interval](features/completed-download-handling.md).
+
+---
+
+## Recipe: Add missing French/Quebec series titles
+
+**Goal:** make releases named after a French/QC series title match their series when
+TheTVDB and the scene-mapping services lack that title — permanently (user mappings
+are never touched by mapping updates or refreshes).
+
+1. Prepare a JSON file in the curated-dataset format (tvdb-keyed):
+
+   ```json
+   [
+     { "tvdbId": 81189, "imdbId": "tt0903747", "seriesTitle": "Breaking Bad", "year": 2008,
+       "missingFrenchTitles": [ { "title": "Le Chimiste d'Albuquerque", "region": "QC" } ] }
+   ]
+   ```
+
+2. Import it:
+
+   ```bash
+   curl -X POST "http://<host>:8989/api/v3/scenemapping/user/import" \
+     -H "X-Api-Key: <api-key>" -H "Content-Type: application/json" \
+     -d @curated-tv.json
+   ```
+
+3. Check the summary response; entries under `seriesNotFound` aren't in your library.
+
+Imported titles appear in the series page's **Alternate Titles** list and are safe to
+re-import after adding series (already-present titles are skipped).
+
+> Full reference: [User Scene Mappings](features/user-scene-mappings.md).
 
 ---
 
