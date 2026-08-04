@@ -444,6 +444,29 @@ namespace NzbDrone.Core.Test.DataAugmentation.Scene
         }
 
         [Test]
+        public void should_fold_curly_double_quotes_to_ascii_double_quote()
+        {
+            SceneMappingService.NormalizeSearchTerm("“Mon Titre”").Should().Be("\"Mon Titre\"");
+        }
+
+        [Test]
+        public void should_fold_modifier_letter_apostrophe_to_ascii()
+        {
+            SceneMappingService.NormalizeSearchTerm("NʼDjamena").Should().Be("N'Djamena");
+        }
+
+        [Test]
+        public void should_not_skip_title_with_modifier_letter_apostrophe()
+        {
+            var series = GivenSeries();
+            GivenExistingMappings();
+
+            var result = Subject.UpsertUserMappings(new List<SceneMapping> { new SceneMapping { Title = "LʼOfficine" } }, series);
+
+            result.Should().NotBeEmpty();
+        }
+
+        [Test]
         public void should_skip_user_mapping_that_cannot_be_searched()
         {
             var series = GivenSeries();

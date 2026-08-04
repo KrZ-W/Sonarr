@@ -35,7 +35,8 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
         private static readonly Regex SpaceSeparatorRegex = new (@"\p{Zs}", RegexOptions.Compiled);
         private static readonly Regex DashPunctuationRegex = new (@"\p{Pd}", RegexOptions.Compiled);
-        private static readonly Regex QuotePunctuationRegex = new (@"[\p{Pi}\p{Pf}]", RegexOptions.Compiled);
+        private static readonly Regex SingleQuoteRegex = new (@"[‘’‚‛ʼ]", RegexOptions.Compiled);
+        private static readonly Regex DoubleQuoteRegex = new (@"[“”„‟«»]", RegexOptions.Compiled);
 
         private readonly ISceneMappingRepository _repository;
         private readonly IEnumerable<ISceneMappingProvider> _sceneMappingProviders;
@@ -268,7 +269,8 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
             folded = SpaceSeparatorRegex.Replace(folded, " ");
             folded = DashPunctuationRegex.Replace(folded, "-");
-            folded = QuotePunctuationRegex.Replace(folded, "'");
+            folded = SingleQuoteRegex.Replace(folded, "'");
+            folded = DoubleQuoteRegex.Replace(folded, "\"");
 
             return folded.Trim();
         }
