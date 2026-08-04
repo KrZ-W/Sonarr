@@ -8,6 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Tv;
 using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.DataAugmentation.Scene
@@ -19,6 +20,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         List<SceneMapping> FindByTvdbId(int tvdbId);
         SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
+        List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -27,6 +29,10 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                                        IHandle<SeriesImportedEvent>,
                                        IExecute<UpdateSceneMappingCommand>
     {
+        // Must never equal an ISceneMappingProvider type name: UpdateMappings clears per
+        // provider type, which is what makes user rows survive mapping updates.
+        public const string UserMappingType = "User";
+
         private readonly ISceneMappingRepository _repository;
         private readonly IEnumerable<ISceneMappingProvider> _sceneMappingProviders;
         private readonly IEventAggregator _eventAggregator;
@@ -128,6 +134,83 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         public int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle)
         {
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
+        }
+
+        public List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series)
+        {
+            var allMappings = _repository.All().ToList();
+            var addList = new List<SceneMapping>();
+
+            foreach (var mapping in mappings)
+            {
+                mapping.TvdbId = series.TvdbId;
+                mapping.Type = UserMappingType;
+                mapping.SearchTerm = NormalizeSearchTerm(mapping.Title);
+                mapping.ParseTerm = mapping.SearchTerm.CleanSeriesTitle();
+
+                // No season constraints and no "tvdb" origin, so GetSceneNames includes the
+                // mapping for every season search.
+                mapping.SeasonNumber = null;
+                mapping.SceneSeasonNumber = null;
+                mapping.SceneOrigin = null;
+                mapping.FilterRegex = null;
+
+                if (mapping.ParseTerm.IsNullOrWhiteSpace() || mapping.ParseTerm == series.CleanTitle)
+                {
+                    continue;
+                }
+
+                // Already mapped for this series (any provider): idempotent skip.
+                if (allMappings.Any(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId == series.TvdbId))
+                {
+                    continue;
+                }
+
+                // Mapped to a different series: inserting would make FindSceneMapping throw
+                // InvalidSceneMappingException for every release with this title.
+                if (allMappings.Any(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId != series.TvdbId))
+                {
+                    _logger.Warn("Skipping user scene mapping '{0}' for {1}: parse term already maps to tvdbid {2}", mapping.Title, series.Title, allMappings.First(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId != series.TvdbId).TvdbId);
+                    continue;
+                }
+
+                if (addList.Any(m => m.ParseTerm == mapping.ParseTerm))
+                {
+                    continue;
+                }
+
+                addList.Add(mapping);
+            }
+
+            if (addList.Any())
+            {
+                _repository.InsertMany(addList);
+                RefreshCache();
+                _eventAggregator.PublishEvent(new SceneMappingsUpdatedEvent());
+            }
+
+            _logger.Debug("Upserted user scene mappings for {0}; Adding {1}, Skipping {2}.", series.Title, addList.Count, mappings.Count - addList.Count);
+
+            return addList;
+        }
+
+        // GetSceneNames drops search terms containing any char above U+00FF, so search-relevant
+        // typography must be folded to Latin-1; accented French letters are already below it.
+        private static string NormalizeSearchTerm(string title)
+        {
+            return title.Replace("œ", "oe")
+                        .Replace("Œ", "Oe")
+                        .Replace("æ", "ae")
+                        .Replace("Æ", "Ae")
+                        .Replace("’", "'")
+                        .Replace("‘", "'")
+                        .Replace("“", "\"")
+                        .Replace("”", "\"")
+                        .Replace("–", "-")
+                        .Replace("—", "-")
+                        .Replace("…", "...")
+                        .Replace("\u00A0", " ")
+                        .Trim();
         }
 
         private void UpdateMappings()
