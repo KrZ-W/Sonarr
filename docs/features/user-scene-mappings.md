@@ -64,18 +64,31 @@ Rules:
   (logged as a warning). This guard is stricter than Radarr's because in Sonarr a
   duplicated parse term makes `FindSceneMapping` throw
   `InvalidSceneMappingException` for every matching release. Titles equal to another
-  library series' title are refused for the same reason.
+  library series' title are refused for the same reason — checked against every
+  spelling the title would be stored under, and a title is taken whole or not at
+  all, never half-inserted.
 - `region` is stored in the mapping's `Comment` field.
 - Mappings carry no season constraints (`SeasonNumber`/`SceneSeasonNumber` null), so
   they apply to searches for every season.
 
-### Search-term normalization
+### Search-term normalization and parse terms
 
 `GetSceneNames` silently excludes search terms containing any character above
-U+00FF (its `IsEnglish` check). Accented French letters pass, but `œ`, curly
-quotes, and em-dashes don't — so the import normalizes the stored search term to
-Latin-1 (`œ→oe`, `’→'`, `—→-`, `…→...`) while keeping the original typography in
-the display title.
+U+00FF (its `IsEnglish` check). Accented French letters pass, but ligatures, curly
+quotes, and typographic spaces/dashes don't — so the stored **search term** is
+folded to Latin-1: ligatures (`œ→oe`, `æ→ae`, `ß→ss`) and `…→...` explicitly,
+spaces/dashes/quotes by Unicode category (`\p{Zs}`, `\p{Pd}`, `\p{Pi}\p{Pf}`), so
+characters real French typography uses — narrow no-break space, non-breaking
+hyphen — are handled too. A title that still contains an unsearchable character
+after folding is **skipped with a warning** rather than stored as a row that would
+never contribute a query. The display title keeps the original typography.
+
+**Parse terms** follow upstream's convention of deriving from `Title`, so a release
+named with the original spelling resolves. When the folded spelling produces a
+*different* parse term, a **second row** is inserted for it — releases returned by
+an indexer are named after the folded title we searched with, so both spellings
+must resolve. One imported title therefore yields one or two rows; the summary
+counts titles, not rows.
 
 ## Usage
 
@@ -97,10 +110,18 @@ Verify: the series page's *Alternate Titles* list, or
   title, delete the row from the `SceneMappings` table and re-import.
 - Episode numbering differences (TVDB vs scene order) remain XEM's job — user
   mappings only affect series-title matching.
+- The collision guards see the library and mapping table **as they are at import
+  time**. If a provider update later publishes the same parse term for a different
+  series, or you add a series whose title collides with an imported mapping,
+  `FindSceneMapping` can throw `InvalidSceneMappingException` for affected
+  releases. Upstream has the same exposure between its own providers; the fix is to
+  delete the offending user row.
 
 ## Source
 
-Commit: `7c8d9d636`. Key files:
+Commits: `7c8d9d636` (feature), plus the review fixes on `feat/user-alt-titles`
+(non-throwing library guard, parse terms per upstream convention with both
+spellings, category-based folding). Key files:
 `DataAugmentation/Scene/SceneMappingService.cs` (`UpsertUserMappings` + guards +
 normalization), `Sonarr.Api.V3/SceneMappings/UserSceneMappingController.cs`
 (endpoint), `Sonarr.Api.V3/SceneMappings/UserSceneMappingImportResource.cs` (DTOs).

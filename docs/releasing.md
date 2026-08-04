@@ -31,6 +31,8 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
      `## [v<ver>+krzw.<N>] — based on Sonarr <upstream-version>` section.
    - Reset `[Unreleased]` to `_Nothing yet._`.
    - Update the two link-reference lines at the bottom of the file.
+   - Update **`FORK.md`**'s `Current fork version` line to the new tag (it is easy to
+     miss and silently goes stale across releases).
 
 3. **Commit** the changelog (and any doc updates):
 

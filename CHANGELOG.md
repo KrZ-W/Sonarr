@@ -10,7 +10,24 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **User scene mapping import robustness:** the collision guard no longer calls the
+  series lookup that throws `MultipleSeriesFoundException` when two library series
+  share a clean title (The Office UK/US) — one such title used to abort the whole
+  import with a 500 after earlier series had already been inserted. The library is
+  now read once per request and compared directly, which is also fewer queries than
+  the previous per-title lookup.
+- **Guard now compares what is actually stored.** It cleaned the raw title while the
+  row stored the folded spelling, so ligature titles (`Cœur…` vs `Coeur…`) could slip
+  past and hijack an existing series' parsing.
+- **Parse terms follow upstream's convention** (derived from `Title`), with a second
+  row inserted for the folded spelling when it differs, so releases named either way
+  resolve. Import summaries count titles, not rows.
+- **Typography folding is category-based** (`\p{Zs}`, `\p{Pd}`, `\p{Pi}\p{Pf}`) plus
+  explicit ligatures, covering characters the hand-written list missed (narrow
+  no-break space, non-breaking hyphen). A title still unsearchable after folding is
+  skipped with a warning instead of stored as a row that never contributes a query.
 
 ## [v4.0.19.2979+krzw.5] — based on Sonarr 4.0.19.2979
 

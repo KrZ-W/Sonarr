@@ -33,6 +33,10 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         // provider type, which is what makes user rows survive mapping updates.
         public const string UserMappingType = "User";
 
+        private static readonly Regex SpaceSeparatorRegex = new (@"\p{Zs}", RegexOptions.Compiled);
+        private static readonly Regex DashPunctuationRegex = new (@"\p{Pd}", RegexOptions.Compiled);
+        private static readonly Regex QuotePunctuationRegex = new (@"[\p{Pi}\p{Pf}]", RegexOptions.Compiled);
+
         private readonly ISceneMappingRepository _repository;
         private readonly IEnumerable<ISceneMappingProvider> _sceneMappingProviders;
         private readonly IEventAggregator _eventAggregator;
@@ -143,43 +147,64 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
             foreach (var mapping in mappings)
             {
-                mapping.TvdbId = series.TvdbId;
-                mapping.Type = UserMappingType;
-                mapping.SearchTerm = NormalizeSearchTerm(mapping.Title);
-                mapping.ParseTerm = mapping.SearchTerm.CleanSeriesTitle();
-
-                // No season constraints and no "tvdb" origin, so GetSceneNames includes the
-                // mapping for every season search.
-                mapping.SeasonNumber = null;
-                mapping.SceneSeasonNumber = null;
-                mapping.SceneOrigin = null;
-                mapping.FilterRegex = null;
-
-                if (mapping.ParseTerm.IsNullOrWhiteSpace() || mapping.ParseTerm == series.CleanTitle)
+                if (mapping.Title.IsNullOrWhiteSpace())
                 {
                     continue;
                 }
 
-                // Already mapped for this series (any provider): idempotent skip.
-                if (allMappings.Any(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId == series.TvdbId))
+                var searchTerm = NormalizeSearchTerm(mapping.Title);
+
+                // A term GetSceneNames would discard yields a mapping that silently never
+                // contributes a query; report it instead of storing a dead row.
+                if (!IsEnglish(searchTerm))
+                {
+                    _logger.Warn("Skipping user scene mapping '{0}' for {1}: title contains characters that cannot be used in a search query", mapping.Title, series.Title);
+                    continue;
+                }
+
+                var parseTerms = GetParseTerms(mapping.Title);
+
+                if (!parseTerms.Any() || parseTerms.Contains(series.CleanTitle))
                 {
                     continue;
                 }
 
                 // Mapped to a different series: inserting would make FindSceneMapping throw
-                // InvalidSceneMappingException for every release with this title.
-                if (allMappings.Any(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId != series.TvdbId))
+                // InvalidSceneMappingException for every release with this title. Every spelling
+                // is checked before any is inserted, so a title is taken whole or not at all.
+                var conflict = allMappings.Concat(addList).FirstOrDefault(m => parseTerms.Contains(m.ParseTerm) && m.TvdbId != series.TvdbId);
+
+                if (conflict != null)
                 {
-                    _logger.Warn("Skipping user scene mapping '{0}' for {1}: parse term already maps to tvdbid {2}", mapping.Title, series.Title, allMappings.First(m => m.ParseTerm == mapping.ParseTerm && m.TvdbId != series.TvdbId).TvdbId);
+                    _logger.Warn("Skipping user scene mapping '{0}' for {1}: parse term already maps to tvdbid {2}", mapping.Title, series.Title, conflict.TvdbId);
                     continue;
                 }
 
-                if (addList.Any(m => m.ParseTerm == mapping.ParseTerm))
-                {
-                    continue;
-                }
+                // Already mapped for this series (any provider): idempotent skip.
+                var newTerms = parseTerms
+                    .Where(p => !allMappings.Any(m => m.ParseTerm == p && m.TvdbId == series.TvdbId))
+                    .Where(p => !addList.Any(m => m.ParseTerm == p))
+                    .ToList();
 
-                addList.Add(mapping);
+                foreach (var parseTerm in newTerms)
+                {
+                    addList.Add(new SceneMapping
+                    {
+                        Title = mapping.Title,
+                        Comment = mapping.Comment,
+                        TvdbId = series.TvdbId,
+                        Type = UserMappingType,
+                        SearchTerm = searchTerm,
+                        ParseTerm = parseTerm,
+
+                        // No season constraints and no "tvdb" origin, so GetSceneNames includes
+                        // the mapping for every season search.
+                        SeasonNumber = null,
+                        SceneSeasonNumber = null,
+                        SceneOrigin = null,
+                        FilterRegex = null
+                    });
+                }
             }
 
             if (addList.Any())
@@ -189,28 +214,63 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 _eventAggregator.PublishEvent(new SceneMappingsUpdatedEvent());
             }
 
-            _logger.Debug("Upserted user scene mappings for {0}; Adding {1}, Skipping {2}.", series.Title, addList.Count, mappings.Count - addList.Count);
+            var addedTitles = addList.Select(m => m.Title).Distinct().Count();
+
+            _logger.Debug("Upserted user scene mappings for {0}; Adding {1} titles ({2} rows), Skipping {3}.", series.Title, addedTitles, addList.Count, mappings.Count - addedTitles);
 
             return addList;
         }
 
-        // GetSceneNames drops search terms containing any char above U+00FF, so search-relevant
-        // typography must be folded to Latin-1; accented French letters are already below it.
-        private static string NormalizeSearchTerm(string title)
+        /// <summary>
+        /// Parse terms a user title should be matched by. Follows upstream's convention that
+        /// ParseTerm derives from Title, and adds the folded spelling when it differs: we search
+        /// under the folded form, so indexers return releases named that way, while the original
+        /// spelling can also appear in the wild.
+        /// </summary>
+        public static List<string> GetParseTerms(string title)
         {
-            return title.Replace("œ", "oe")
-                        .Replace("Œ", "Oe")
-                        .Replace("æ", "ae")
-                        .Replace("Æ", "Ae")
-                        .Replace("’", "'")
-                        .Replace("‘", "'")
-                        .Replace("“", "\"")
-                        .Replace("”", "\"")
-                        .Replace("–", "-")
-                        .Replace("—", "-")
-                        .Replace("…", "...")
-                        .Replace("\u00A0", " ")
-                        .Trim();
+            if (title.IsNullOrWhiteSpace())
+            {
+                return new List<string>();
+            }
+
+            var terms = new List<string> { title.CleanSeriesTitle() };
+            var folded = NormalizeSearchTerm(title).CleanSeriesTitle();
+
+            if (folded != terms[0])
+            {
+                terms.Add(folded);
+            }
+
+            return terms.Where(t => t.IsNotNullOrWhiteSpace()).ToList();
+        }
+
+        /// <summary>
+        /// Folds typography to Latin-1 so GetSceneNames' IsEnglish filter keeps the term.
+        /// Ligatures need explicit mapping - they have no canonical decomposition, so RemoveAccent
+        /// leaves them - while spaces, dashes and quotes fold by Unicode category rather than a
+        /// hand-written list, which kept missing characters real French typography uses (narrow
+        /// no-break space, non-breaking hyphen).
+        /// </summary>
+        public static string NormalizeSearchTerm(string title)
+        {
+            if (title.IsNullOrWhiteSpace())
+            {
+                return title;
+            }
+
+            var folded = title.Replace("\u0153", "oe")
+                              .Replace("\u0152", "Oe")
+                              .Replace("\u00E6", "ae")
+                              .Replace("\u00C6", "Ae")
+                              .Replace("\u00DF", "ss")
+                              .Replace("\u2026", "...");
+
+            folded = SpaceSeparatorRegex.Replace(folded, " ");
+            folded = DashPunctuationRegex.Replace(folded, "-");
+            folded = QuotePunctuationRegex.Replace(folded, "'");
+
+            return folded.Trim();
         }
 
         private void UpdateMappings()
