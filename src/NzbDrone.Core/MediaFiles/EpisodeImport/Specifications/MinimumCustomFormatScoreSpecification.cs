@@ -16,6 +16,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
 
         public ImportSpecDecision IsSatisfiedBy(LocalEpisode localEpisode, DownloadClientItem downloadClientItem)
         {
+            if (localEpisode.ExistingFile)
+            {
+                _logger.Debug("Existing file, skipping minimum custom format score check");
+                return ImportSpecDecision.Accept();
+            }
+
             var minScore = localEpisode.Series.QualityProfile.Value.MinFormatScore;
             var score = localEpisode.CustomFormatScore;
 
