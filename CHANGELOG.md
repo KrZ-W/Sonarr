@@ -12,6 +12,23 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.8] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Library rescans no longer reject existing files below the minimum CF score.**
+  The fork's import-time `MinFormatScore` enforcement also ran on unmapped files
+  already inside a series folder during a disk rescan; a file scoring below the
+  profile minimum was rejected on every rescan and never mapped into the database
+  (present on disk, invisible to Sonarr, episode still treated as missing).
+  Existing files now skip the check, matching the convention of the other
+  import-gatekeeping specs. Enforcement on the download/import path is unchanged.
+- **Regional-language unit test updated.** `IsoLanguagesFixture` still asserted
+  `fr-CA` is an invalid code, contradicting the fork's `en-CA`/`fr-CA` entries;
+  the case is now a positive French/English mapping test.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.8`.
+
 ## [v4.0.19.2979+krzw.7] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -197,7 +214,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.7...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.8...HEAD
+[v4.0.19.2979+krzw.8]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.8
 [v4.0.19.2979+krzw.7]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.7
 [v4.0.19.2979+krzw.6]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.6
 [v4.0.19.2979+krzw.5]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.5
