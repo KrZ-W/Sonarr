@@ -55,6 +55,14 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         }
 
         [Test]
+        public void should_accept_existing_file_regardless_of_score()
+        {
+            _localEpisode.ExistingFile = true;
+            _localEpisode.CustomFormatScore = -10000;
+            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
         public void should_accept_when_minimum_is_negative_and_score_above_it()
         {
             _series.QualityProfile.Value.MinFormatScore = -5000;
