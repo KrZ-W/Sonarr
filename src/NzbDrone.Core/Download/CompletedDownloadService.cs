@@ -67,6 +67,17 @@ namespace NzbDrone.Core.Download
         {
             if (trackedDownload.DownloadItem.Status != DownloadItemStatus.Completed)
             {
+                // krzw: a transient completed-misread from the download client can strand a
+                // still-downloading item in ImportPending/ImportBlocked with stale import
+                // warnings, which external queue cleaners treat as failed imports. Revert to
+                // Downloading until the client actually reports the download complete.
+                if (trackedDownload.State == TrackedDownloadState.ImportPending ||
+                    trackedDownload.State == TrackedDownloadState.ImportBlocked)
+                {
+                    trackedDownload.State = TrackedDownloadState.Downloading;
+                    trackedDownload.ResetStatus();
+                }
+
                 return;
             }
 
