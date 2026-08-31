@@ -469,7 +469,19 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             item.Languages = episodeFile.Languages;
             item.IndexerFlags = (int)episodeFile.IndexerFlags;
             item.ReleaseType = episodeFile.ReleaseType;
-            item.Size = _diskProvider.GetFileSize(item.Path);
+
+            // A DB-referenced existing file may be missing from disk (e.g. a stale row). Degrade
+            // gracefully to the last-known size instead of throwing, which would 500 the whole listing.
+            if (_diskProvider.FileExists(item.Path))
+            {
+                item.Size = _diskProvider.GetFileSize(item.Path);
+            }
+            else
+            {
+                _logger.Warn("Existing episode file is referenced in the database but missing from disk: {0}", item.Path);
+                item.Size = episodeFile.Size;
+            }
+
             item.Rejections = Enumerable.Empty<ImportRejection>();
             item.EpisodeFileId = episodeFile.Id;
             item.CustomFormats = _formatCalculator.ParseCustomFormat(episodeFile, series);
