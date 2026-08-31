@@ -72,6 +72,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             {
                 var localEpisode = importDecision.LocalEpisode;
                 var oldFiles = new List<DeletedEpisodeFile>();
+                EpisodeFileMoveResult moveResult = null;
 
                 try
                 {
@@ -156,7 +157,11 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         episodeFile.SceneName = localEpisode.SceneName;
                         episodeFile.OriginalFilePath = GetOriginalFilePath(downloadClientItem, localEpisode);
 
-                        oldFiles = _episodeFileUpgrader.UpgradeEpisodeFile(episodeFile, localEpisode, copyOnly).OldFiles;
+                        // Parks (does not delete) the existing file and moves the replacement into place.
+                        // The existing file is only removed once the import is committed (FinalizeUpgrade
+                        // below); a failure here restores the original and rethrows.
+                        moveResult = _episodeFileUpgrader.UpgradeEpisodeFile(episodeFile, localEpisode, copyOnly);
+                        oldFiles = moveResult.OldFiles;
                     }
                     else
                     {
@@ -171,7 +176,29 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         }
                     }
 
-                    episodeFile = _mediaFileService.Add(episodeFile);
+                    try
+                    {
+                        episodeFile = _mediaFileService.Add(episodeFile);
+                    }
+                    catch
+                    {
+                        // Writing the replacement's DB row failed. Undo the move and restore the parked
+                        // original so the upgrade never leaves the slot empty.
+                        if (moveResult != null)
+                        {
+                            _episodeFileUpgrader.RollbackUpgrade(moveResult);
+                        }
+
+                        throw;
+                    }
+
+                    // Replacement is now on disk and in the database: the upgrade is committed. Only now
+                    // remove the parked original(s) (recycle bin + episodeFileDeleted/Upgrade event).
+                    if (moveResult != null)
+                    {
+                        _episodeFileUpgrader.FinalizeUpgrade(moveResult);
+                    }
+
                     importResults.Add(new ImportResult(importDecision, episodeFile));
 
                     if (newDownload)
