@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.9] — based on Sonarr 4.0.19.2979
+
 ### Fixed
 
 - **Phantom empty slots on failed upgrade imports (data loss):** an upgrade import
@@ -27,6 +31,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   file missing from disk made the Manual Import listing throw a fatal
   `FileNotFoundException`; it now logs a warning and lists the item with its last-known
   size.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.9`.
 
 ## [v4.0.19.2979+krzw.8] — based on Sonarr 4.0.19.2979
 
@@ -230,7 +236,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.8...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.9...HEAD
+[v4.0.19.2979+krzw.9]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.9
 [v4.0.19.2979+krzw.8]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.8
 [v4.0.19.2979+krzw.7]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.7
 [v4.0.19.2979+krzw.6]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.6

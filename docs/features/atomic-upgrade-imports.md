@@ -1,6 +1,6 @@
 # Atomic Upgrade Imports
 
-> **Status:** stable · **Since:** `v4.0.19.2979+krzw.5` · **Surface:** automatic (no settings)
+> **Status:** stable · **Since:** `v4.0.19.2979+krzw.9` · **Surface:** automatic (no settings)
 
 ## What it does
 
@@ -85,3 +85,11 @@ permanently deleted before the transfer even started).
 frequent (language-first swaps of files that are otherwise fine) — which is exactly what
 turned upstream's latent ordering flaw into a mass-loss event. Those features decide
 *whether* to upgrade; this one guarantees the swap itself can't destroy anything.
+
+## Source
+
+Commit: `9326bd91d`. Key files:
+`MediaFiles/UpgradeMediaFileService.cs` (park / finalize / rollback),
+`MediaFiles/PendingUpgradeFile.cs`, `MediaFiles/EpisodeFileMoveResult.cs`,
+`MediaFiles/EpisodeImport/ImportApprovedEpisodes.cs` (commit orchestration),
+`MediaFiles/EpisodeImport/Manual/ManualImportService.cs` (missing-file hardening).
