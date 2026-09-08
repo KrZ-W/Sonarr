@@ -138,6 +138,18 @@ namespace NzbDrone.Core.Download
 
         public void Import(TrackedDownload trackedDownload)
         {
+            // krzw: ImportPending items reach this method (never Check) on every processing run.
+            // If the client no longer reports the item Completed, the earlier completed state was a
+            // transient misread; revert to Downloading and clear the stale import warnings instead
+            // of re-attempting the import against a still-downloading path.
+            if (trackedDownload.DownloadItem.Status != DownloadItemStatus.Completed)
+            {
+                trackedDownload.State = TrackedDownloadState.Downloading;
+                trackedDownload.ResetStatus();
+
+                return;
+            }
+
             SetImportItem(trackedDownload);
 
             if (!ValidatePath(trackedDownload))
