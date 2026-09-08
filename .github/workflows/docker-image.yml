@@ -5,6 +5,7 @@ on:
     branches:
       - personal/**
       - feature/**
+      - feat/**
       - fix/**
     paths:
       - 'src/**'

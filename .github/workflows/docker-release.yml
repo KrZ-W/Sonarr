@@ -11,7 +11,7 @@ name: Docker release image
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*krzw*'   # fork release tags only (v<ver>+krzw.<N>); '+' is a glob metachar so it is not spelled out
   workflow_dispatch:
     inputs:
       tag:

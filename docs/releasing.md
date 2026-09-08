@@ -14,9 +14,13 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
   Confirm it with:
 
   ```bash
-  git describe --tags --abbrev=0 --match 'v*' \
-    "$(git merge-base upstream/main personal/all-features-main)"
+  git describe --tags --abbrev=0 --match 'v*' --exclude '*krzw*' personal/all-features-main
   ```
+
+  (This clone has a single remote, `origin` = the fork. Upstream release tags are
+  reachable from the aggregate because each rebase starts from one; `--exclude`
+  skips the fork's own tags. `origin/main` and `origin/develop` are upstream
+  mirrors refreshed by hand, not the base.)
 
 - `<N>` starts at `1` for each new upstream base and increments for subsequent fork
   releases on that **same** base. After a rebase onto a newer upstream, reset to `1`.
@@ -38,14 +42,14 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
 
    ```bash
    git commit -am "docs: release v4.0.19.2979+krzw.2"
-   git push myfork personal/all-features-main
+   git push origin personal/all-features-main
    ```
 
 4. **Tag and push the tag.** The `+` is fine in a git tag:
 
    ```bash
    git tag -a 'v4.0.19.2979+krzw.2' -m 'Fork release based on Sonarr 4.0.19.2979'
-   git push myfork 'v4.0.19.2979+krzw.2'
+   git push origin 'v4.0.19.2979+krzw.2'
    ```
 
    This triggers `docker-release.yml`, which builds and pushes the immutable image tag
@@ -79,8 +83,12 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
 
 ## After rebasing onto a newer upstream
 
-1. Rebase each `feature/*` / `fix/*` branch onto the new `upstream/main`, re-merge into
-   `personal/all-features-main`, resolve conflicts.
+1. Fetch the new upstream release tag without adding a remote
+   (`git fetch https://github.com/Sonarr/Sonarr.git tag v4.0.20.xxxx`), rebase
+   `personal/all-features-main` onto it (`git rebase --rebase-merges --onto <tag> <old-tag>`
+   on a `feature/rebase-<ver>` working branch, resolving merge-replay conflicts from the
+   original merge commits), verify, then replace the aggregate. Topic branches are
+   intertwined and are left on their original base; cherry-picks still apply.
 2. Re-confirm the new `<upstream-version>` with the `git describe` command above.
 3. Refresh the `## Source` commit hashes in `docs/features/*.md` — a rebase rewrites
    every fork commit, so the cited hashes go stale. Find the new ones with
@@ -96,5 +104,5 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
 
 | Workflow | Trigger | Produces |
 |---|---|---|
-| `docker-image.yml` | push to `personal/**`, `feature/**`, `fix/**` | `:latest` (primary branch), `:<branch>`, `:sha-<short>` |
-| `docker-release.yml` | push of a `v*` tag | `:<upstream-version>-krzw.<N>` (immutable release image) |
+| `docker-image.yml` | push to `personal/**`, `feature/**`, `feat/**`, `fix/**` | `:latest` (primary branch), `:<branch>`, `:sha-<short>` |
+| `docker-release.yml` | push of a `v*krzw*` tag (fork release tags) | `:<upstream-version>-krzw.<N>` (immutable release image) |
