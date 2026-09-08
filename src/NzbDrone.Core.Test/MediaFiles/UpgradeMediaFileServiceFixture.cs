@@ -71,6 +71,8 @@ namespace NzbDrone.Core.Test.MediaFiles
                                                                                 })
                                                      .Build()
                                                      .ToList();
+
+            StubParkedPaths();
         }
 
         private void GivenMultipleEpisodesWithSingleEpisodeFile()
@@ -85,6 +87,8 @@ namespace NzbDrone.Core.Test.MediaFiles
                                                                                 })
                                                      .Build()
                                                      .ToList();
+
+            StubParkedPaths();
         }
 
         private void GivenMultipleEpisodesWithMultipleEpisodeFiles()
@@ -104,6 +108,28 @@ namespace NzbDrone.Core.Test.MediaFiles
                                                                                 })
                                                      .Build()
                                                      .ToList();
+
+            StubParkedPaths();
+        }
+
+        private string ExistingFilePath(EpisodeFile file)
+        {
+            return Path.Combine(_localEpisode.Series.Path, file.RelativePath);
+        }
+
+        // Each parked path is empty when the stale check runs, then holds the parked original for every
+        // later look (finalize / restore). A test that wants a stale leftover overrides this.
+        private void StubParkedPaths()
+        {
+            foreach (var file in _localEpisode.Episodes.Where(e => e.EpisodeFile != null).Select(e => e.EpisodeFile.Value).DistinctBy(f => f.Id))
+            {
+                Mocker.GetMock<IDiskProvider>()
+                      .SetupSequence(c => c.FileExists(ExistingFilePath(file) + ParkedFileSuffix))
+                      .Returns(false)
+                      .Returns(true)
+                      .Returns(true)
+                      .Returns(true);
+            }
         }
 
         private EpisodeFileMoveResult UpgradeAndFinalize()
@@ -199,6 +225,84 @@ namespace NzbDrone.Core.Test.MediaFiles
             GivenMultipleEpisodesWithMultipleEpisodeFiles();
 
             UpgradeAndFinalize().OldFiles.Count.Should().Be(2);
+        }
+
+        [Test]
+        public void should_expose_old_file_to_the_import_script_during_the_transfer()
+        {
+            GivenSingleEpisodeWithSingleEpisodeFile();
+
+            var oldFilesSeenByMover = -1;
+
+            // ScriptImportDecider runs inside the mover and reads localEpisode.OldFiles for
+            // Sonarr_DeletedPaths; the entry must exist before FinalizeUpgrade.
+            Mocker.GetMock<IMoveEpisodeFiles>()
+                  .Setup(c => c.MoveEpisodeFile(It.IsAny<EpisodeFile>(), It.IsAny<LocalEpisode>()))
+                  .Callback<EpisodeFile, LocalEpisode>((f, l) => oldFilesSeenByMover = l.OldFiles.Count)
+                  .Returns(new EpisodeFile { RelativePath = @"Season 01\30.rock.s01e01.new.mkv" });
+
+            var result = Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+
+            oldFilesSeenByMover.Should().Be(1);
+            result.OldFiles.Single().EpisodeFile.Should().BeSameAs(_localEpisode.Episodes.Single().EpisodeFile.Value);
+            result.OldFiles.Single().RecycleBinPath.Should().BeNull();
+        }
+
+        [Test]
+        public void should_fill_in_recycle_bin_path_on_finalize_without_duplicating_old_files()
+        {
+            GivenMultipleEpisodesWithMultipleEpisodeFiles();
+
+            Mocker.GetMock<IRecycleBinProvider>()
+                  .Setup(c => c.DeleteFile(It.IsAny<string>(), It.IsAny<string>()))
+                  .Returns<string, string>((path, subfolder) => Path.Combine(@"C:\Test\Recycle".AsOsAgnostic(), Path.GetFileName(path)));
+
+            var result = UpgradeAndFinalize();
+
+            result.OldFiles.Should().HaveCount(2);
+            result.OldFiles.Should().OnlyContain(f => f.RecycleBinPath != null);
+            _localEpisode.OldFiles.Should().BeSameAs(result.OldFiles);
+        }
+
+        [Test]
+        public void should_recycle_a_stale_parked_file_instead_of_deleting_it_permanently()
+        {
+            GivenSingleEpisodeWithSingleEpisodeFile();
+
+            var stalePath = ExistingFilePath(_localEpisode.Episodes.Single().EpisodeFile.Value) + ParkedFileSuffix;
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(c => c.FileExists(stalePath))
+                  .Returns(true);
+
+            Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+
+            Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(stalePath, It.IsAny<string>()), Times.Once());
+            Mocker.GetMock<IDiskProvider>().Verify(v => v.DeleteFile(stalePath), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_delete_a_stale_parked_file_permanently_when_recycling_fails()
+        {
+            GivenSingleEpisodeWithSingleEpisodeFile();
+
+            var stalePath = ExistingFilePath(_localEpisode.Episodes.Single().EpisodeFile.Value) + ParkedFileSuffix;
+
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(c => c.FileExists(stalePath))
+                  .Returns(true);
+
+            Mocker.GetMock<IRecycleBinProvider>()
+                  .Setup(c => c.DeleteFile(stalePath, It.IsAny<string>()))
+                  .Throws(new RecycleBinException("Simulated recycle bin failure"));
+
+            Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+
+            Mocker.GetMock<IDiskProvider>().Verify(v => v.DeleteFile(stalePath), Times.Once());
+
+            ExceptionVerification.ExpectedWarns(2);
         }
 
         [Test]
