@@ -28,6 +28,9 @@ Rules:
 - The **first value must be `0`** (auto-prepended if you omit it).
 - **Empty** falls back to the upstream default `0,1,5,15,30,60,180,360,720,1440`.
 - Values are the successive cooldown durations after each consecutive failure.
+- Values must be **whole, non-negative minutes**. Saving anything else (a negative
+  number, a decimal, text, or a value above `35791394`) is rejected with a validation
+  error instead of being silently ignored.
 
 ## Behavior & edge cases
 
@@ -36,6 +39,11 @@ Rules:
   field on the shared `ProviderStatusServiceBase`).
 - Once the failure count exceeds the number of entries, the last (longest) period
   continues to apply.
+- The daily housekeeping task that clamps "too far in the future" indexer status times
+  bounds them with **the configured schedule**, not the default table, so a long custom
+  cooldown is never cut short by housekeeping (or by a restart, which runs it too). A
+  persisted escalation level past the end of the table is clamped instead of making the
+  housekeeper throw.
 
 ## Configuration
 
@@ -46,6 +54,8 @@ Rules:
 ## Source
 
 Commit: `94de4c188`. Key files: `Configuration/ConfigService.cs`,
+`Indexers/IndexerCooldownPeriods.cs` (parser shared by service, housekeeper and validator),
+`Housekeeping/Housekeepers/FixFutureIndexerStatusTimes.cs`,
 `Indexers/IndexerStatusService.cs`, `ThingiProvider/Status/ProviderStatusServiceBase.cs`,
 `Sonarr.Api.V3/Config/IndexerConfigResource.cs`,
 `frontend/src/Settings/Indexers/Options/IndexerOptions.js`.
