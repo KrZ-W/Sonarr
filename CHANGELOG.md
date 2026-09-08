@@ -10,7 +10,34 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Indexer cooldown: housekeeping no longer breaks on long custom schedules.** The daily
+  "fix future status times" task indexed the *default* 10-entry table with the persisted
+  escalation level; with a custom `IndexerCooldownPeriods` of more than 10 entries, an
+  indexer at level 10+ made the task throw and abort for every indexer, every day. It now
+  clamps the level and bounds `DisabledTill` with the **configured** schedule (previously a
+  custom period above 60× the default at that level was clipped on restart). The setting is
+  validated on save (whole non-negative minutes) instead of silently falling back to the
+  default on negatives, decimals or text; parsing lives in one `IndexerCooldownPeriods`
+  class shared by the status service, the housekeeper and the validator.
+- **Audio Title: MediaInfo schema revision no longer collides with upstream.** The fork
+  had bumped the revision 11 → 12 for `AudioTitles`; upstream's own next bump would have
+  reused 12 and fork-probed files would never re-probe for it. The revision is back at
+  upstream's 11 and files probed before audio titles were captured are detected by the
+  missing `AudioTitles` list instead. Files already stamped 12 are unaffected.
+- **Atomic upgrade imports: import scripts get `Sonarr_DeletedPaths` & co. again** (the
+  list was only filled after the script had run), and a stale `*.krzw-upgrade-bak` left
+  by an interrupted run is sent to the recycle bin instead of being deleted permanently.
+- **Season-pack partial fill: the threshold percentage is validated** (0–100). Above 100
+  could never accept a pack; below 0 always did.
+
+### Changed
+
+- Custom Format Priority: removed the unused "regular score" calculation left over from
+  an earlier design (no behaviour change).
+- Review note: unlike Radarr, Sonarr's extras cleanup on file deletion is synchronous, so
+  the Radarr `krzw.3` same-name subtitle race does not exist here; no change was needed.
 
 ## [v4.0.19.2979+krzw.13] — based on Sonarr 4.0.19.2979
 
