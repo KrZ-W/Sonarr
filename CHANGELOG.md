@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.13] — based on Sonarr 4.0.19.2979
+
 ### Changed
 
 - **User scene mapping import pipeline moved into Core**
@@ -26,6 +30,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   accepted as an alias of `missingFrenchTitles`. Brings the Sonarr importer to the same
   shape as Radarr's krzw.2 refactor. See
   [docs](docs/features/user-scene-mappings.md#architecture).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.13`.
 
 ## [v4.0.19.2979+krzw.12] — based on Sonarr 4.0.19.2979
 
@@ -310,7 +316,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.12...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.13...HEAD
+[v4.0.19.2979+krzw.13]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.13
 [v4.0.19.2979+krzw.12]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.12
 [v4.0.19.2979+krzw.11]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.11
 [v4.0.19.2979+krzw.10]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.10
