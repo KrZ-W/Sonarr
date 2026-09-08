@@ -10,6 +10,142 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.13] — based on Sonarr 4.0.19.2979
+
+### Changed
+
+- **User scene mapping import pipeline moved into Core**
+  (`DataAugmentation/Scene/UserSceneMappingImportService`). The endpoint is now a thin
+  controller; series resolution, the library-title guard, the loop and the counting
+  previously lived in the API project, where the guard was untestable. Behaviour is
+  unchanged for existing callers. Improvements that came with the move: a row that
+  throws is reported in a new `seriesFailed` list and the request continues instead of
+  returning HTTP 500 after partial inserts; requests are validated up front (max 5000
+  series, 100 titles per series, 500 characters per title → HTTP 400); the summary
+  gains `titlesGuardedLibrary`, `titlesConflictingMapping`, `titlesUnsearchable` and
+  `titlesAlreadyPresent` (their sum is the existing `titlesSkipped`), sourced from a new
+  `UpsertUserMappingsDetailed` that reports why each title was skipped; `titles` is
+  accepted as an alias of `missingFrenchTitles`. Brings the Sonarr importer to the same
+  shape as Radarr's krzw.2 refactor. See
+  [docs](docs/features/user-scene-mappings.md#architecture).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.13`.
+
+## [v4.0.19.2979+krzw.12] — based on Sonarr 4.0.19.2979
+
+### Changed
+
+- **Fork markers:** every fork change to an upstream source file now carries a
+  `krzw(<feature>)` comment (118 markers across 38 files; previously 3). Comment-only
+  change, no functional difference. `git grep -n 'krzw('` lists them.
+- **Upstream base confirmed and tagged:** the aggregate sits exactly on upstream
+  `main` at `v4.0.19.2979` (`4ff1b7800`); that tag is now on the fork so
+  `docs/releasing.md`'s base-version check works. Upstream `main` has not moved since,
+  so no rebase was needed.
+- **CI:** `docker-image.yml` now also builds `feat/**` branches; `docker-release.yml`
+  only triggers on `v*krzw*` tags so a mirrored upstream tag can never publish a
+  release image.
+- **Repository hygiene:** default branch is `personal/all-features-main`; the 45
+  upstream development branches that had been mirrored into the fork and 5 upstream
+  leftovers with no fork commits were removed (they still exist on Sonarr/Sonarr);
+  `origin/main`, `origin/develop` and `origin/v5-develop` are now current upstream
+  mirrors instead of 2026-05 snapshots.
+- Docs: `docs/releasing.md` and `FORK.md` no longer reference non-existent
+  `upstream`/`myfork` remotes; the base-version check works on this clone; the marker
+  convention is documented.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.12`.
+
+## [v4.0.19.2979+krzw.11] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Stuck "Import Pending" self-heal now actually reaches `ImportPending` items.**
+  krzw.10 placed the revert inside `CompletedDownloadService.Check`, but the download
+  monitor only calls `Check` for `Downloading`/`ImportBlocked` items; `ImportPending`
+  items are routed to `Import` on every run instead, so only the `ImportBlocked` half
+  of the fix was live. The same guard now sits at the top of `Import`: a client item
+  no longer reported `Completed` reverts to `Downloading` with its stale warnings
+  cleared, before any import is attempted. See
+  [docs](docs/features/completed-download-handling.md#stuck-import-pending-self-heal).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.11`.
+
+## [v4.0.19.2979+krzw.10] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Downloads permanently stranded in "Import Pending" (mark-failed mid-download):** a
+  transient completed-state misread from the download client (seen during external
+  recheck/relocate operations) moved a still-downloading item to `ImportPending` /
+  `ImportBlocked` with a stale import warning attached. Once there, the item never
+  recovered — the completed-download check returns early for any item the client no
+  longer reports as `Completed`, so the state and its warning persisted while the
+  download was still running, and external queue cleaners read that warning as a failed
+  import and marked the grab failed mid-download. Such items now self-heal on the next
+  refresh: the state reverts to `Downloading` and the stale warnings are cleared until
+  the client actually reports the download complete. Settled states (`Imported`,
+  `Failed`, `Ignored`) are left untouched. See
+  [docs](docs/features/completed-download-handling.md#stuck-import-pending-self-heal).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.10`.
+
+## [v4.0.19.2979+krzw.9] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Phantom empty slots on failed upgrade imports (data loss):** an upgrade import
+  deleted the existing file and its DB row *before* moving the replacement into the
+  library, so any failure after that point (destination error, crash, DB write failure)
+  destroyed the old file while importing nothing — with no recycle bin configured, the
+  loss was permanent. Triggered at scale on 2026-08-30 when a CF score change queued
+  ~1000 upgrade grabs: 242 `episodeFileDeleted`/Upgrade events, only 27 imports. The
+  ordering is inherited from upstream; the fork's priority-CF upgrades made it fire
+  constantly. Upgrades are now **atomic**: the existing file is parked aside (renamed),
+  the replacement is imported and committed, and only then is the original recycled —
+  any failure restores the original and returns a moved replacement to the download
+  folder. See [docs](docs/features/atomic-upgrade-imports.md).
+- **Manual Import no longer 500s on stale file rows:** a database-referenced episode
+  file missing from disk made the Manual Import listing throw a fatal
+  `FileNotFoundException`; it now logs a warning and lists the item with its last-known
+  size.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.9`.
+
+## [v4.0.19.2979+krzw.8] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Library rescans no longer reject existing files below the minimum CF score.**
+  The fork's import-time `MinFormatScore` enforcement also ran on unmapped files
+  already inside a series folder during a disk rescan; a file scoring below the
+  profile minimum was rejected on every rescan and never mapped into the database
+  (present on disk, invisible to Sonarr, episode still treated as missing).
+  Existing files now skip the check, matching the convention of the other
+  import-gatekeeping specs. Enforcement on the download/import path is unchanged.
+- **Regional-language unit test updated.** `IsoLanguagesFixture` still asserted
+  `fr-CA` is an invalid code, contradicting the fork's `en-CA`/`fr-CA` entries;
+  the case is now a positive French/English mapping test.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.8`.
+
+## [v4.0.19.2979+krzw.7] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Curly double quotes no longer fold to apostrophe.** `"Mon Titre"` (U+201C/201D)
+  was folded to `'Mon Titre'` instead of `"Mon Titre"`, producing a search term
+  indexers would never match.
+- **Modifier-letter apostrophe (U+02BC) is now folded.** Titles using the
+  typographically correct apostrophe `ʼ` (common in transliterated names) were
+  silently rejected because the character's code point exceeds Latin-1.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.7`.
+
+## [v4.0.19.2979+krzw.6] — based on Sonarr 4.0.19.2979
+
 ### Fixed
 
 - **User scene mapping import robustness:** the collision guard no longer calls the
@@ -28,6 +164,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   explicit ligatures, covering characters the hand-written list missed (narrow
   no-break space, non-breaking hyphen). A title still unsearchable after folding is
   skipped with a warning instead of stored as a row that never contributes a query.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.6`.
 
 ## [v4.0.19.2979+krzw.5] — based on Sonarr 4.0.19.2979
 
@@ -178,7 +316,15 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.5...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.13...HEAD
+[v4.0.19.2979+krzw.13]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.13
+[v4.0.19.2979+krzw.12]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.12
+[v4.0.19.2979+krzw.11]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.11
+[v4.0.19.2979+krzw.10]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.10
+[v4.0.19.2979+krzw.9]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.9
+[v4.0.19.2979+krzw.8]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.8
+[v4.0.19.2979+krzw.7]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.7
+[v4.0.19.2979+krzw.6]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.6
 [v4.0.19.2979+krzw.5]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.5
 [v4.0.19.2979+krzw.4]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.4
 [v4.0.19.2979+krzw.3]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.3
