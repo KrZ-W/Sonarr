@@ -12,6 +12,24 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.10] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Downloads permanently stranded in "Import Pending" (mark-failed mid-download):** a
+  transient completed-state misread from the download client (seen during external
+  recheck/relocate operations) moved a still-downloading item to `ImportPending` /
+  `ImportBlocked` with a stale import warning attached. Once there, the item never
+  recovered — the completed-download check returns early for any item the client no
+  longer reports as `Completed`, so the state and its warning persisted while the
+  download was still running, and external queue cleaners read that warning as a failed
+  import and marked the grab failed mid-download. Such items now self-heal on the next
+  refresh: the state reverts to `Downloading` and the stale warnings are cleared until
+  the client actually reports the download complete. Settled states (`Imported`,
+  `Failed`, `Ignored`) are left untouched.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.10`.
+
 ## [v4.0.19.2979+krzw.9] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -236,7 +254,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.9...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.10...HEAD
+[v4.0.19.2979+krzw.10]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.10
 [v4.0.19.2979+krzw.9]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.9
 [v4.0.19.2979+krzw.8]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.8
 [v4.0.19.2979+krzw.7]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.7
