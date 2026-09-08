@@ -44,6 +44,7 @@
   background-color: unset;
 }
 
+/* krzw(cf-priority): CSS */
 .priorityContainer {
   display: flex;
   flex-grow: 0;

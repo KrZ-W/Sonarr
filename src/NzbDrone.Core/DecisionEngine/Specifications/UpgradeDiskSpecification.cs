@@ -1,36 +1,36 @@
-using System;
+using System;  // krzw(season-pack)
 using System.Linq;
 using NLog;
-using NzbDrone.Common.Extensions;
-using NzbDrone.Core.Configuration;
+using NzbDrone.Common.Extensions;  // krzw(season-pack)
+using NzbDrone.Core.Configuration;  // krzw(season-pack)
 using NzbDrone.Core.CustomFormats;
-using NzbDrone.Core.History;
+using NzbDrone.Core.History;  // krzw(season-pack)
 using NzbDrone.Core.IndexerSearch.Definitions;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles;  // krzw(season-pack)
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Profiles.Qualities;
-using NzbDrone.Core.Tv;
+using NzbDrone.Core.Profiles.Qualities;  // krzw(season-pack)
+using NzbDrone.Core.Tv;  // krzw(season-pack)
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
     public class UpgradeDiskSpecification : IDownloadDecisionEngineSpecification
     {
         private readonly UpgradableSpecification _upgradableSpecification;
-        private readonly IConfigService _configService;
+        private readonly IConfigService _configService;  // krzw(season-pack)
         private readonly ICustomFormatCalculationService _formatService;
-        private readonly IHistoryService _historyService;
+        private readonly IHistoryService _historyService;  // krzw(season-pack)
         private readonly Logger _logger;
 
         public UpgradeDiskSpecification(UpgradableSpecification upgradableSpecification,
-                                        IConfigService configService,
+                                        IConfigService configService,  // krzw(season-pack)
                                         ICustomFormatCalculationService formatService,
-                                        IHistoryService historyService,
+                                        IHistoryService historyService,  // krzw(season-pack)
                                         Logger logger)
         {
             _upgradableSpecification = upgradableSpecification;
-            _configService = configService;
+            _configService = configService;  // krzw(season-pack)
             _formatService = formatService;
-            _historyService = historyService;
+            _historyService = historyService;  // krzw(season-pack)
             _logger = logger;
         }
 
@@ -41,6 +41,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
         {
             var qualityProfile = subject.Series.QualityProfile.Value;
 
+            // krzw(season-pack): whole-pack evaluation; per-file loop extracted to CheckUpgradeSpecification
             // A season pack fills the whole season at once. Instead of rejecting it outright when a
             // single already-present episode isn't an upgrade, evaluate the pack as a whole: missing
             // episodes are slots it fills and existing files are weighed for upgrades. Whether a
@@ -64,6 +65,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             return DownloadSpecDecision.Accept();
         }
 
+        // krzw(season-pack)
         private DownloadSpecDecision IsSeasonPackUpgrade(RemoteEpisode subject, QualityProfile qualityProfile)
         {
             var totalEpisodesInPack = subject.Episodes.Count;
@@ -134,6 +136,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             return DownloadSpecDecision.Reject(DownloadRejectionReason.DiskNotUpgrade, "Season pack does not meet the upgrade criteria. Upgradable: {0}/{1} ({2:0.##}%), Mode: {3}, Threshold: {4}%", upgradedCount, consideredCount, upgradablePercentage, seasonPackUpgrade, seasonPackUpgradeThreshold);
         }
 
+        // krzw(season-pack)
         private bool PackPreviouslyImportedWithoutEpisode(Episode episode, RemoteEpisode subject)
         {
             // If this same release was grabbed for this episode before and that download completed
@@ -174,6 +177,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             return wasImported;
         }
 
+        // krzw(season-pack): upstream's per-file body, unchanged, now returns null for 'not rejected'
         private DownloadSpecDecision CheckUpgradeSpecification(EpisodeFile file, QualityProfile qualityProfile, RemoteEpisode subject)
         {
             if (file == null)

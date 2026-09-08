@@ -68,7 +68,7 @@ namespace NzbDrone.Core.Jobs
                 {
                     new ScheduledTask
                     {
-                        Interval = GetRefreshMonitoredInterval(),
+                        Interval = GetRefreshMonitoredInterval(),  // krzw(cdh-interval)
                         TypeName = typeof(RefreshMonitoredDownloadsCommand).FullName,
                         Priority = CommandPriority.High
                     },
@@ -199,6 +199,7 @@ namespace NzbDrone.Core.Jobs
             return interval;
         }
 
+        // krzw(cdh-interval)
         private int GetRefreshMonitoredInterval()
         {
             var interval = _configService.CheckForFinishedDownloadInterval;
@@ -239,6 +240,7 @@ namespace NzbDrone.Core.Jobs
             var backup = _scheduledTaskRepository.GetDefinition(typeof(BackupCommand));
             backup.Interval = GetBackupInterval();
 
+            // krzw(cdh-interval): re-applied live on config save
             var refreshMonitoredDownloads = _scheduledTaskRepository.GetDefinition(typeof(RefreshMonitoredDownloadsCommand));
             refreshMonitoredDownloads.Interval = GetRefreshMonitoredInterval();
 
@@ -246,7 +248,7 @@ namespace NzbDrone.Core.Jobs
 
             _cache.Find(rss.TypeName).Interval = rss.Interval;
             _cache.Find(backup.TypeName).Interval = backup.Interval;
-            _cache.Find(refreshMonitoredDownloads.TypeName).Interval = refreshMonitoredDownloads.Interval;
+            _cache.Find(refreshMonitoredDownloads.TypeName).Interval = refreshMonitoredDownloads.Interval;  // krzw(cdh-interval)
         }
     }
 }

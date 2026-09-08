@@ -72,7 +72,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             {
                 var localEpisode = importDecision.LocalEpisode;
                 var oldFiles = new List<DeletedEpisodeFile>();
-                EpisodeFileMoveResult moveResult = null;
+                EpisodeFileMoveResult moveResult = null;  // krzw(atomic-upgrade)
 
                 try
                 {
@@ -157,6 +157,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         episodeFile.SceneName = localEpisode.SceneName;
                         episodeFile.OriginalFilePath = GetOriginalFilePath(downloadClientItem, localEpisode);
 
+                        // krzw(atomic-upgrade)
                         // Parks (does not delete) the existing file and moves the replacement into place.
                         // The existing file is only removed once the import is committed (FinalizeUpgrade
                         // below); a failure here restores the original and rethrows.
@@ -176,6 +177,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         }
                     }
 
+                    // krzw(atomic-upgrade): commit point: rollback on DB failure, finalize after
                     try
                     {
                         episodeFile = _mediaFileService.Add(episodeFile);

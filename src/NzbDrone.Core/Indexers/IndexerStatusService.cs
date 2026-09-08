@@ -1,7 +1,7 @@
-using System.Linq;
+using System.Linq;  // krzw(indexer-cooldown)
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
-using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Configuration;  // krzw(indexer-cooldown)
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.ThingiProvider.Status;
@@ -17,14 +17,16 @@ namespace NzbDrone.Core.Indexers
 
     public class IndexerStatusService : ProviderStatusServiceBase<IIndexer, IndexerStatus>, IIndexerStatusService
     {
-        private readonly IConfigService _configService;
+        private readonly IConfigService _configService;  // krzw(indexer-cooldown)
 
+        // krzw(indexer-cooldown): ctor gains IConfigService
         public IndexerStatusService(IIndexerStatusRepository providerStatusRepository, IEventAggregator eventAggregator, IRuntimeInfo runtimeInfo, IConfigService configService, Logger logger)
             : base(providerStatusRepository, eventAggregator, runtimeInfo, logger)
         {
             _configService = configService;
         }
 
+        // krzw(indexer-cooldown): IndexerCooldownPeriods CSV (minutes) -> seconds table
         protected override int[] GetEscalationPeriods()
         {
             var configured = _configService.IndexerCooldownPeriods;

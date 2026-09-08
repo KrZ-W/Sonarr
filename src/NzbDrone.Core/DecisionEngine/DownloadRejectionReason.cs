@@ -74,5 +74,5 @@ public enum DownloadRejectionReason
     DiskCustomFormatScore,
     DiskCustomFormatScoreIncrement,
     DiskUpgradesNotAllowed,
-    DiskNotUpgrade
+    DiskNotUpgrade  // krzw(season-pack)
 }

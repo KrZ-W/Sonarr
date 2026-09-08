@@ -470,6 +470,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
             item.IndexerFlags = (int)episodeFile.IndexerFlags;
             item.ReleaseType = episodeFile.ReleaseType;
 
+            // krzw(atomic-upgrade): missing-file hardening
             // A DB-referenced existing file may be missing from disk (e.g. a stale row). Degrade
             // gracefully to the last-known size instead of throwing, which would 500 the whole listing.
             if (_diskProvider.FileExists(item.Path))

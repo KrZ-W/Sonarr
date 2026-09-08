@@ -99,6 +99,7 @@ function IndexerOptions(props) {
               />
             </FormGroup>
 
+            {/* krzw(indexer-cooldown) */}
             <FormGroup
               advancedSettings={advancedSettings}
               isAdvanced={true}

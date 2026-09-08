@@ -7,6 +7,6 @@ namespace NzbDrone.Core.Profiles
     {
         public CustomFormat Format { get; set; }
         public int Score { get; set; }
-        public bool Priority { get; set; }
+        public bool Priority { get; set; }  // krzw(cf-priority)
     }
 }

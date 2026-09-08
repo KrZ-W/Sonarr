@@ -17,7 +17,7 @@ function calcOrder(profileFormatItems) {
   }, {});
 
   return [...profileFormatItems].sort((a, b) => {
-    // Sort by priority first (priority items at top), then by score
+    // krzw(cf-priority): sort by priority first (priority items at top), then by score
     if (a.priority !== b.priority) {
       return a.priority ? -1 : 1;
     }
@@ -54,6 +54,7 @@ class QualityProfileFormatItems extends Component {
     this.reorderItems();
   };
 
+  // krzw(cf-priority)
   onPriorityChange = (formatId, value) => {
     const {
       onQualityProfileFormatItemPriorityChange
@@ -130,6 +131,7 @@ class QualityProfileFormatItems extends Component {
               <div className={styles.headerScore}>
                 {translate('Score')}
               </div>
+              {/* krzw(cf-priority) */}
               <div className={styles.headerPriority}>
                 {translate('Priority')}
               </div>

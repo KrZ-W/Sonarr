@@ -20,7 +20,7 @@ namespace NzbDrone.Core.Configuration
 
         // Completed/Failed Download Handling (Download client)
         bool EnableCompletedDownloadHandling { get; set; }
-        int CheckForFinishedDownloadInterval { get; set; }
+        int CheckForFinishedDownloadInterval { get; set; }  // krzw(cdh-interval)
         bool AutoRedownloadFailed { get; set; }
         bool AutoRedownloadFailedFromInteractiveSearch { get; set; }
 
@@ -43,7 +43,7 @@ namespace NzbDrone.Core.Configuration
         RescanAfterRefreshType RescanAfterRefresh { get; set; }
         EpisodeTitleRequiredType EpisodeTitleRequired { get; set; }
 
-        // Season Pack Upgrade (Media Management)
+        // krzw(season-pack): Season Pack Upgrade (Media Management)
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         double SeasonPackUpgradeThreshold { get; set; }
 
@@ -57,7 +57,7 @@ namespace NzbDrone.Core.Configuration
         int RssSyncInterval { get; set; }
         int MaximumSize { get; set; }
         int MinimumAge { get; set; }
-        string IndexerCooldownPeriods { get; set; }
+        string IndexerCooldownPeriods { get; set; }  // krzw(indexer-cooldown)
 
         ListSyncLevelType ListSyncLevel { get; set; }
         int ListSyncTag { get; set; }

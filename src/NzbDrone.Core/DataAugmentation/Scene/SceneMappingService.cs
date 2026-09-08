@@ -8,7 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv;  // krzw(scene-mappings)
 using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.DataAugmentation.Scene
@@ -20,7 +20,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         List<SceneMapping> FindByTvdbId(int tvdbId);
         SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
-        List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);
+        List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);  // krzw(scene-mappings)
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -29,6 +29,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                                        IHandle<SeriesImportedEvent>,
                                        IExecute<UpdateSceneMappingCommand>
     {
+        // krzw(scene-mappings): Type="User" rows survive provider refreshes by construction
         // Must never equal an ISceneMappingProvider type name: UpdateMappings clears per
         // provider type, which is what makes user rows survive mapping updates.
         public const string UserMappingType = "User";
@@ -141,6 +142,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
 
+        // krzw(scene-mappings): POST /api/v3/scenemapping/user/import
         public List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series)
         {
             var allMappings = _repository.All().ToList();
@@ -223,7 +225,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         }
 
         /// <summary>
-        /// Parse terms a user title should be matched by. Follows upstream's convention that
+        /// krzw(scene-mappings): Parse terms a user title should be matched by. Follows upstream's convention that
         /// ParseTerm derives from Title, and adds the folded spelling when it differs: we search
         /// under the folded form, so indexers return releases named that way, while the original
         /// spelling can also appear in the wild.
@@ -247,7 +249,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         }
 
         /// <summary>
-        /// Folds typography to Latin-1 so GetSceneNames' IsEnglish filter keeps the term.
+        /// krzw(scene-mappings): Folds typography to Latin-1 so GetSceneNames' IsEnglish filter keeps the term.
         /// Ligatures need explicit mapping - they have no canonical decomposition, so RemoveAccent
         /// leaves them - while spaces, dashes and quotes fold by Unicode category rather than a
         /// hand-written list, which kept missing characters real French typography uses (narrow

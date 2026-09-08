@@ -1,9 +1,9 @@
 using System.Linq;
 using NLog;
-using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Configuration;  // krzw(season-pack)
 using NzbDrone.Core.DataAugmentation.Scene;
 using NzbDrone.Core.IndexerSearch.Definitions;
-using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles;  // krzw(season-pack)
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications.Search
@@ -12,13 +12,14 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
     {
         private readonly Logger _logger;
         private readonly ISceneMappingService _sceneMappingService;
-        private readonly IConfigService _configService;
+        private readonly IConfigService _configService;  // krzw(season-pack)
 
+        // krzw(season-pack): ctor gains IConfigService
         public SingleEpisodeSearchMatchSpecification(ISceneMappingService sceneMappingService, IConfigService configService, Logger logger)
         {
             _logger = logger;
             _sceneMappingService = sceneMappingService;
-            _configService = configService;
+            _configService = configService;  // krzw(season-pack)
         }
 
         public SpecificationPriority Priority => SpecificationPriority.Default;

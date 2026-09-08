@@ -1,5 +1,5 @@
 using System;
-using System.Diagnostics;
+using System.Diagnostics;  // krzw(cdh-interval)
 using System.Linq;
 using NLog;
 using NzbDrone.Core.Configuration;
@@ -47,6 +47,7 @@ namespace NzbDrone.Core.Download
 
         public void Execute(ProcessMonitoredDownloadsCommand message)
         {
+            // krzw(cdh-interval): per-run duration logging
             var stopwatch = Stopwatch.StartNew();
 
             _logger.Debug("Completed Download Handling run starting.");
@@ -82,6 +83,7 @@ namespace NzbDrone.Core.Download
             // Imported downloads are no longer trackable so process them after processing trackable downloads
             RemoveCompletedDownloads();
 
+            // krzw(cdh-interval)
             stopwatch.Stop();
 
             var interval = _configService.CheckForFinishedDownloadInterval;

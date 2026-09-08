@@ -9,7 +9,7 @@ namespace Sonarr.Api.V3.Config
         public int Retention { get; set; }
         public int MaximumSize { get; set; }
         public int RssSyncInterval { get; set; }
-        public string IndexerCooldownPeriods { get; set; }
+        public string IndexerCooldownPeriods { get; set; }  // krzw(indexer-cooldown)
     }
 
     public static class IndexerConfigResourceMapper
@@ -22,7 +22,7 @@ namespace Sonarr.Api.V3.Config
                 Retention = model.Retention,
                 MaximumSize = model.MaximumSize,
                 RssSyncInterval = model.RssSyncInterval,
-                IndexerCooldownPeriods = model.IndexerCooldownPeriods
+                IndexerCooldownPeriods = model.IndexerCooldownPeriods  // krzw(indexer-cooldown)
             };
         }
     }
