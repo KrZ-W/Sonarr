@@ -117,6 +117,36 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             AssertNotReadyToImport();
         }
 
+        [TestCase(TrackedDownloadState.ImportPending)]
+        [TestCase(TrackedDownloadState.ImportBlocked)]
+        public void should_revert_to_downloading_when_download_status_is_no_longer_completed(TrackedDownloadState state)
+        {
+            _trackedDownload.State = state;
+            _trackedDownload.Warn("Stale import warning");
+            _trackedDownload.DownloadItem.Status = DownloadItemStatus.Downloading;
+
+            Subject.Check(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Downloading);
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Ok);
+            _trackedDownload.StatusMessages.Should().BeEmpty();
+            AssertNotReadyToImport();
+        }
+
+        [TestCase(TrackedDownloadState.Imported)]
+        [TestCase(TrackedDownloadState.Failed)]
+        [TestCase(TrackedDownloadState.Ignored)]
+        public void should_not_revert_states_other_than_import_pending_or_blocked_when_download_status_is_no_longer_completed(TrackedDownloadState state)
+        {
+            _trackedDownload.State = state;
+            _trackedDownload.DownloadItem.Status = DownloadItemStatus.Downloading;
+
+            Subject.Check(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(state);
+            AssertNotReadyToImport();
+        }
+
         [Test]
         public void should_not_process_if_matching_history_is_not_found_and_no_category_specified()
         {
