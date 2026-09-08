@@ -51,7 +51,31 @@ the property the Radarr patch had to build by hand.)
 ]
 ```
 
-and returns `{seriesProcessed, titlesAdded, titlesSkipped, seriesNotFound}`.
+and returns:
+
+```json
+{
+  "seriesProcessed": 1,
+  "titlesAdded": 1,
+  "titlesSkipped": 0,
+  "titlesGuardedLibrary": 0,
+  "titlesConflictingMapping": 0,
+  "titlesUnsearchable": 0,
+  "titlesAlreadyPresent": 0,
+  "seriesNotFound": [],
+  "seriesFailed": []
+}
+```
+
+`titlesSkipped` is the sum of the four breakdown counters: `titlesGuardedLibrary` (a
+parse term of the title is another library series' title), `titlesConflictingMapping`
+(a parse term already maps to a different tvdbId), `titlesUnsearchable` (folds to
+something the scene-name search filter would discard) and `titlesAlreadyPresent`
+(the series' own title, or every parse term already mapped for it). `seriesFailed`
+lists rows whose import threw (`"<title> (<year>) [tvdb:<id>]: <error>"`); the rest of
+the request still completes. The request is validated before any work starts: at most
+5000 series per request, 100 titles per series and 500 characters per title, otherwise
+HTTP 400. `titles` is accepted as a neutral alias of `missingFrenchTitles`.
 
 Rules:
 
@@ -117,6 +141,23 @@ Verify: the series page's *Alternate Titles* list, or
   releases. Upstream has the same exposure between its own providers; the fix is to
   delete the offending user row.
 
+## Architecture
+
+The endpoint is thin: it validates the request shape, maps the resource onto a neutral
+`UserSceneMappingImportRequest`, calls `IUserSceneMappingImportService` and maps the
+result back. Everything that decides *what happens* lives in Core:
+
+| Piece | Responsibility |
+|---|---|
+| `UserSceneMappingImportService` | per-row pipeline: resolve series (tvdb → imdb), drop blank titles, library-title guard, upsert, count; a row that throws lands in `seriesFailed` and the next row still runs |
+| `SceneMappingService.UpsertUserMappingsDetailed` | normalisation, parse terms, the mapping-table guard, idempotency and insertion, reporting why each title was skipped (`UpsertUserMappings` still returns the added rows) |
+| `SceneMappingService.GetParseTerms` / `NormalizeSearchTerm` | shared by the library guard and the upsert, so both compare what is actually stored |
+
+The library guard builds one `GetAllSeries` lookup per request rather than a lookup per
+title, because `FindByTitle` throws when two library series share a clean title (The
+Office UK/US). The `missingFrenchTitles` field name is a property of the curated
+dataset and exists only in the API layer (`UserSceneMappingImportResourceMapper`).
+
 ## Source
 
 Commits: `7c8d9d636` (feature), plus the review fixes on `feat/user-alt-titles`
@@ -125,3 +166,12 @@ spellings, category-based folding). Key files:
 `DataAugmentation/Scene/SceneMappingService.cs` (`UpsertUserMappings` + guards +
 normalization), `Sonarr.Api.V3/SceneMappings/UserSceneMappingController.cs`
 (endpoint), `Sonarr.Api.V3/SceneMappings/UserSceneMappingImportResource.cs` (DTOs).
+
+Refactor: `212a9dea2` moved the pipeline into Core. Key files:
+`DataAugmentation/Scene/UserSceneMappingImportService.cs`,
+`DataAugmentation/Scene/UserSceneMappingImportRequest.cs`,
+`DataAugmentation/Scene/UserSceneMappingImportResult.cs` (incl. `UserSceneMappingUpsertResult`),
+`Sonarr.Api.V3/SceneMappings/UserSceneMappingImportResourceMapper.cs` (validation + mapping).
+Tests: `NzbDrone.Core.Test/DataAugmentation/Scene/UserSceneMappingImportServiceFixture.cs`,
+`.../SceneMappingServiceUpsertReasonsFixture.cs`,
+`NzbDrone.Api.Test/v3/SceneMappings/UserSceneMappingImportResourceMapperTests.cs`.
