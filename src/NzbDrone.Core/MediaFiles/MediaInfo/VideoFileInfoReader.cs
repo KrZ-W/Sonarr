@@ -21,10 +21,11 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
         private readonly Logger _logger;
         private readonly List<FFProbePixelFormat> _pixelFormats;
 
-        // krzw(audio-title): bumped CURRENT 11 -> 12 to capture per-audio-track titles (AudioTitles).
-        // MINIMUM raised to 12 so existing files re-probe (and gain AudioTitles) on the next library scan.
-        public const int MINIMUM_MEDIA_INFO_SCHEMA_REVISION = 12;
-        public const int CURRENT_MEDIA_INFO_SCHEMA_REVISION = 12;
+        // krzw(audio-title): the revision stays upstream's. Files probed before the fork captured
+        // AudioTitles are detected by AudioTitles == null in UpdateMediaInfoService, so the fork never
+        // has to claim a revision number upstream will use for its own next field.
+        public const int MINIMUM_MEDIA_INFO_SCHEMA_REVISION = 11;
+        public const int CURRENT_MEDIA_INFO_SCHEMA_REVISION = 11;
 
         private static readonly string[] ValidHdrColourPrimaries = { "bt2020" };
         private static readonly string[] HlgTransferFunctions = { "arib-std-b67" };
@@ -103,10 +104,10 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                     .Where(l => l.IsNotNullOrWhiteSpace())
                     .ToList();
 
-                // krzw(audio-title)
+                // krzw(audio-title): never null after a probe (UpdateMediaInfoService keys the re-probe on null)
                 mediaInfoModel.AudioTitles = analysis.AudioStreams?.Select(GetStreamTitle)
                     .Where(t => t.IsNotNullOrWhiteSpace())
-                    .ToList();
+                    .ToList() ?? new List<string>();
                 mediaInfoModel.Subtitles = analysis.SubtitleStreams?.Select(x => x.Language)
                     .Where(l => l.IsNotNullOrWhiteSpace())
                     .ToList();

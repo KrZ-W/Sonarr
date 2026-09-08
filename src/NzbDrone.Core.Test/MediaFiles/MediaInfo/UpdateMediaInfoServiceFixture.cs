@@ -63,7 +63,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
                 .With(v => v.Path = null)
                 .With(v => v.RelativePath = "media.mkv")
                 .TheFirst(1)
-                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.CURRENT_MEDIA_INFO_SCHEMA_REVISION })
+                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.CURRENT_MEDIA_INFO_SCHEMA_REVISION, AudioTitles = new List<string>() })
                 .BuildList();
 
             Mocker.GetMock<IMediaFileService>()
@@ -90,7 +90,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
                 .With(v => v.Path = null)
                 .With(v => v.RelativePath = "media.mkv")
                 .TheFirst(1)
-                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.MINIMUM_MEDIA_INFO_SCHEMA_REVISION })
+                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.MINIMUM_MEDIA_INFO_SCHEMA_REVISION, AudioTitles = new List<string>() })
                 .BuildList();
 
             Mocker.GetMock<IMediaFileService>()
@@ -107,6 +107,37 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaInfo
 
             Mocker.GetMock<IMediaFileService>()
                   .Verify(v => v.Update(It.IsAny<EpisodeFile>()), Times.Exactly(2));
+        }
+
+        [Test]
+        public void should_update_media_info_probed_before_audio_titles_were_captured()
+        {
+            // krzw(audio-title): current revision but no AudioTitles list = probed by a build that did not
+            // capture audio titles; it must be re-probed without the fork claiming a new revision number.
+            var episodeFiles = Builder<EpisodeFile>.CreateListOfSize(2)
+                .All()
+                .With(v => v.Path = null)
+                .With(v => v.RelativePath = "media.mkv")
+                .TheFirst(1)
+                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.CURRENT_MEDIA_INFO_SCHEMA_REVISION, AudioTitles = null })
+                .TheLast(1)
+                .With(v => v.MediaInfo = new MediaInfoModel { SchemaRevision = VideoFileInfoReader.CURRENT_MEDIA_INFO_SCHEMA_REVISION, AudioTitles = new List<string>() })
+                .BuildList();
+
+            Mocker.GetMock<IMediaFileService>()
+                  .Setup(v => v.GetFilesBySeries(1))
+                  .Returns(episodeFiles);
+
+            GivenFileExists();
+            GivenSuccessfulScan();
+
+            Subject.Handle(new SeriesScannedEvent(_series, new List<string>()));
+
+            Mocker.GetMock<IVideoFileInfoReader>()
+                  .Verify(v => v.GetMediaInfo(Path.Combine(_series.Path, "media.mkv")), Times.Exactly(1));
+
+            Mocker.GetMock<IMediaFileService>()
+                  .Verify(v => v.Update(It.IsAny<EpisodeFile>()), Times.Exactly(1));
         }
 
         [Test]
