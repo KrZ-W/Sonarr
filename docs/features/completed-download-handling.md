@@ -66,6 +66,12 @@ client status rather than the tracked state.
 
 Recovery is automatic on the next CDH run; no restart or queue intervention is needed.
 
+**Where it runs:** the guard lives in both `CompletedDownloadService.Check` (reached by
+`ImportBlocked` items via the download monitor) and `CompletedDownloadService.Import`
+(reached by `ImportPending` items via download processing). `krzw.10` only had the
+`Check` half, so `ImportPending` items — the originally reported case — never
+self-healed; `krzw.11` added the `Import` half.
+
 ## Configuration
 
 Set it via the API (there is no UI field). Read the current config, then PUT it back
@@ -89,7 +95,8 @@ It takes effect immediately — no restart needed.
 ## Source
 
 Commits: `e14b4a027` (configurable interval), `a72681500` (run logging),
-`e65ca9710` (ImportPending self-heal), `9928525f5` (its regression tests). Key files:
+`e65ca9710` (ImportPending self-heal in `Check`), `9928525f5` (its regression tests),
+`68fad3665` (same guard in `Import`, the path `ImportPending` items actually take). Key files:
 `Configuration/ConfigService.cs`, `Jobs/TaskManager.cs`
 (`GetRefreshMonitoredInterval()`), `Download/DownloadProcessingService.cs`,
 `Sonarr.Api.V3/Config/DownloadClientConfigResource.cs`,
