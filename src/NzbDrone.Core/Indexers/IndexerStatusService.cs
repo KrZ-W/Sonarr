@@ -1,4 +1,3 @@
-using System.Linq;
 using NLog;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Core.Configuration;
@@ -27,37 +26,7 @@ namespace NzbDrone.Core.Indexers
 
         protected override int[] GetEscalationPeriods()
         {
-            var configured = _configService.IndexerCooldownPeriods;
-            if (string.IsNullOrWhiteSpace(configured))
-            {
-                return EscalationBackOff.Periods;
-            }
-
-            try
-            {
-                var parts = configured.Split(',')
-                    .Select(s => s.Trim())
-                    .Where(s => s.Length > 0)
-                    .Select(s => int.Parse(s) * 60) // input is minutes, internal is seconds
-                    .ToList();
-
-                if (parts.Count == 0)
-                {
-                    return EscalationBackOff.Periods;
-                }
-
-                // Ensure first level is 0 (healthy = no cooldown)
-                if (parts[0] != 0)
-                {
-                    parts.Insert(0, 0);
-                }
-
-                return parts.ToArray();
-            }
-            catch
-            {
-                return EscalationBackOff.Periods;
-            }
+            return IndexerCooldownPeriods.ToSecondsTable(_configService.IndexerCooldownPeriods);
         }
 
         public ReleaseInfo GetLastRssSyncReleaseInfo(int indexerId)

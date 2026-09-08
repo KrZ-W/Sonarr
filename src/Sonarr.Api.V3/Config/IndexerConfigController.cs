@@ -1,5 +1,6 @@
 using FluentValidation;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Indexers;  // krzw(indexer-cooldown)
 using Sonarr.Http;
 using Sonarr.Http.Validation;
 
@@ -19,6 +20,11 @@ namespace Sonarr.Api.V3.Config
 
             SharedValidator.RuleFor(c => c.RssSyncInterval)
                            .IsValidRssSyncInterval();
+
+            // krzw(indexer-cooldown): reject input the status service would otherwise silently ignore
+            SharedValidator.RuleFor(c => c.IndexerCooldownPeriods)
+                           .Must(IndexerCooldownPeriods.IsValid)
+                           .WithMessage("Must be a comma-separated list of whole minutes (e.g. 0,2,10,30,120), or blank for the default");
         }
 
         protected override IndexerConfigResource ToResource(IConfigService model)
