@@ -12,6 +12,21 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.11] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Stuck "Import Pending" self-heal now actually reaches `ImportPending` items.**
+  krzw.10 placed the revert inside `CompletedDownloadService.Check`, but the download
+  monitor only calls `Check` for `Downloading`/`ImportBlocked` items; `ImportPending`
+  items are routed to `Import` on every run instead, so only the `ImportBlocked` half
+  of the fix was live. The same guard now sits at the top of `Import`: a client item
+  no longer reported `Completed` reverts to `Downloading` with its stale warnings
+  cleared, before any import is attempted. See
+  [docs](docs/features/completed-download-handling.md#stuck-import-pending-self-heal).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.11`.
+
 ## [v4.0.19.2979+krzw.10] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -255,7 +270,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.10...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.11...HEAD
+[v4.0.19.2979+krzw.11]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.11
 [v4.0.19.2979+krzw.10]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.10
 [v4.0.19.2979+krzw.9]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.9
 [v4.0.19.2979+krzw.8]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.8
