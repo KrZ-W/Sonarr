@@ -21,6 +21,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
         List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);  // krzw(scene-mappings)
+        UserSceneMappingUpsertResult UpsertUserMappingsDetailed(List<SceneMapping> mappings, Series series);  // krzw(scene-mappings)
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -145,8 +146,15 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         // krzw(scene-mappings): POST /api/v3/scenemapping/user/import
         public List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series)
         {
+            return UpsertUserMappingsDetailed(mappings, series).Added;
+        }
+
+        // krzw(scene-mappings): same upsert, reporting why each title was skipped.
+        public UserSceneMappingUpsertResult UpsertUserMappingsDetailed(List<SceneMapping> mappings, Series series)
+        {
+            var result = new UserSceneMappingUpsertResult();
             var allMappings = _repository.All().ToList();
-            var addList = new List<SceneMapping>();
+            var addList = result.Added;
 
             foreach (var mapping in mappings)
             {
@@ -162,6 +170,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 if (!IsEnglish(searchTerm))
                 {
                     _logger.Warn("Skipping user scene mapping '{0}' for {1}: title contains characters that cannot be used in a search query", mapping.Title, series.Title);
+                    result.TitlesUnsearchable++;
                     continue;
                 }
 
@@ -169,6 +178,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
                 if (!parseTerms.Any() || parseTerms.Contains(series.CleanTitle))
                 {
+                    result.TitlesAlreadyPresent++;
                     continue;
                 }
 
@@ -180,6 +190,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 if (conflict != null)
                 {
                     _logger.Warn("Skipping user scene mapping '{0}' for {1}: parse term already maps to tvdbid {2}", mapping.Title, series.Title, conflict.TvdbId);
+                    result.TitlesConflictingMapping++;
                     continue;
                 }
 
@@ -188,6 +199,11 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                     .Where(p => !allMappings.Any(m => m.ParseTerm == p && m.TvdbId == series.TvdbId))
                     .Where(p => !addList.Any(m => m.ParseTerm == p))
                     .ToList();
+
+                if (!newTerms.Any())
+                {
+                    result.TitlesAlreadyPresent++;
+                }
 
                 foreach (var parseTerm in newTerms)
                 {
@@ -217,11 +233,9 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 _eventAggregator.PublishEvent(new SceneMappingsUpdatedEvent());
             }
 
-            var addedTitles = addList.Select(m => m.Title).Distinct().Count();
+            _logger.Debug("Upserted user scene mappings for {0}; Adding {1} titles ({2} rows), Skipping {3}.", series.Title, result.TitlesAdded, addList.Count, mappings.Count - result.TitlesAdded);
 
-            _logger.Debug("Upserted user scene mappings for {0}; Adding {1} titles ({2} rows), Skipping {3}.", series.Title, addedTitles, addList.Count, mappings.Count - addedTitles);
-
-            return addList;
+            return result;
         }
 
         /// <summary>
