@@ -97,10 +97,5 @@ namespace NzbDrone.Core.Profiles.Qualities
         {
             return FormatItems.Where(x => formats.Contains(x.Format) && x.Priority).Sum(x => x.Score);
         }
-
-        public int CalculateRegularFormatScore(List<CustomFormat> formats)
-        {
-            return FormatItems.Where(x => formats.Contains(x.Format) && !x.Priority).Sum(x => x.Score);
-        }
     }
 }
