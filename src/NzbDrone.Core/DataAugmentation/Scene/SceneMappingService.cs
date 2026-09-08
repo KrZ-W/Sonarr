@@ -8,7 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Tv;
+using NzbDrone.Core.Tv;  // krzw(scene-mappings)
 using NzbDrone.Core.Tv.Events;
 
 namespace NzbDrone.Core.DataAugmentation.Scene
@@ -20,7 +20,8 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         List<SceneMapping> FindByTvdbId(int tvdbId);
         SceneMapping FindSceneMapping(string sceneTitle, string releaseTitle, int sceneSeasonNumber);
         int? GetSceneSeasonNumber(string seriesTitle, string releaseTitle);
-        List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);
+        List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series);  // krzw(scene-mappings)
+        UserSceneMappingUpsertResult UpsertUserMappingsDetailed(List<SceneMapping> mappings, Series series);  // krzw(scene-mappings)
     }
 
     public class SceneMappingService : ISceneMappingService,
@@ -29,6 +30,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                                        IHandle<SeriesImportedEvent>,
                                        IExecute<UpdateSceneMappingCommand>
     {
+        // krzw(scene-mappings): Type="User" rows survive provider refreshes by construction
         // Must never equal an ISceneMappingProvider type name: UpdateMappings clears per
         // provider type, which is what makes user rows survive mapping updates.
         public const string UserMappingType = "User";
@@ -141,10 +143,18 @@ namespace NzbDrone.Core.DataAugmentation.Scene
             return FindSceneMapping(seriesTitle, releaseTitle, -1)?.SceneSeasonNumber;
         }
 
+        // krzw(scene-mappings): POST /api/v3/scenemapping/user/import
         public List<SceneMapping> UpsertUserMappings(List<SceneMapping> mappings, Series series)
         {
+            return UpsertUserMappingsDetailed(mappings, series).Added;
+        }
+
+        // krzw(scene-mappings): same upsert, reporting why each title was skipped.
+        public UserSceneMappingUpsertResult UpsertUserMappingsDetailed(List<SceneMapping> mappings, Series series)
+        {
+            var result = new UserSceneMappingUpsertResult();
             var allMappings = _repository.All().ToList();
-            var addList = new List<SceneMapping>();
+            var addList = result.Added;
 
             foreach (var mapping in mappings)
             {
@@ -160,6 +170,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 if (!IsEnglish(searchTerm))
                 {
                     _logger.Warn("Skipping user scene mapping '{0}' for {1}: title contains characters that cannot be used in a search query", mapping.Title, series.Title);
+                    result.TitlesUnsearchable++;
                     continue;
                 }
 
@@ -167,6 +178,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
 
                 if (!parseTerms.Any() || parseTerms.Contains(series.CleanTitle))
                 {
+                    result.TitlesAlreadyPresent++;
                     continue;
                 }
 
@@ -178,6 +190,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 if (conflict != null)
                 {
                     _logger.Warn("Skipping user scene mapping '{0}' for {1}: parse term already maps to tvdbid {2}", mapping.Title, series.Title, conflict.TvdbId);
+                    result.TitlesConflictingMapping++;
                     continue;
                 }
 
@@ -186,6 +199,11 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                     .Where(p => !allMappings.Any(m => m.ParseTerm == p && m.TvdbId == series.TvdbId))
                     .Where(p => !addList.Any(m => m.ParseTerm == p))
                     .ToList();
+
+                if (!newTerms.Any())
+                {
+                    result.TitlesAlreadyPresent++;
+                }
 
                 foreach (var parseTerm in newTerms)
                 {
@@ -215,15 +233,13 @@ namespace NzbDrone.Core.DataAugmentation.Scene
                 _eventAggregator.PublishEvent(new SceneMappingsUpdatedEvent());
             }
 
-            var addedTitles = addList.Select(m => m.Title).Distinct().Count();
+            _logger.Debug("Upserted user scene mappings for {0}; Adding {1} titles ({2} rows), Skipping {3}.", series.Title, result.TitlesAdded, addList.Count, mappings.Count - result.TitlesAdded);
 
-            _logger.Debug("Upserted user scene mappings for {0}; Adding {1} titles ({2} rows), Skipping {3}.", series.Title, addedTitles, addList.Count, mappings.Count - addedTitles);
-
-            return addList;
+            return result;
         }
 
         /// <summary>
-        /// Parse terms a user title should be matched by. Follows upstream's convention that
+        /// krzw(scene-mappings): Parse terms a user title should be matched by. Follows upstream's convention that
         /// ParseTerm derives from Title, and adds the folded spelling when it differs: we search
         /// under the folded form, so indexers return releases named that way, while the original
         /// spelling can also appear in the wild.
@@ -247,7 +263,7 @@ namespace NzbDrone.Core.DataAugmentation.Scene
         }
 
         /// <summary>
-        /// Folds typography to Latin-1 so GetSceneNames' IsEnglish filter keeps the term.
+        /// krzw(scene-mappings): Folds typography to Latin-1 so GetSceneNames' IsEnglish filter keeps the term.
         /// Ligatures need explicit mapping - they have no canonical decomposition, so RemoveAccent
         /// leaves them - while spaces, dashes and quotes fold by Unicode category rather than a
         /// hand-written list, which kept missing characters real French typography uses (narrow
