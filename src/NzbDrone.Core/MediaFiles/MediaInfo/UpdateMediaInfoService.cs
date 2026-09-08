@@ -46,9 +46,13 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
             }
 
             var allMediaFiles = _mediaFileService.GetFilesBySeries(message.Series.Id);
+
+            // krzw(audio-title): a probe always yields an AudioTitles list (possibly empty), so null
+            // means the file was probed before the fork captured audio titles and needs a re-probe.
             var filteredMediaFiles = allMediaFiles.Where(c =>
                 c.MediaInfo == null ||
-                c.MediaInfo.SchemaRevision < VideoFileInfoReader.MINIMUM_MEDIA_INFO_SCHEMA_REVISION).ToList();
+                c.MediaInfo.SchemaRevision < VideoFileInfoReader.MINIMUM_MEDIA_INFO_SCHEMA_REVISION ||
+                c.MediaInfo.AudioTitles == null).ToList();
 
             foreach (var mediaFile in filteredMediaFiles)
             {
