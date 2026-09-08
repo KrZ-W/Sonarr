@@ -36,7 +36,7 @@ extends it to single-episode searches (no v5 equivalent for that part).
 | **Any** | `Any` | Accept if the pack would fill or upgrade **at least one** episode. |
 
 When **Threshold** is selected, a companion **threshold percentage**
-(`SeasonPackUpgradeThreshold`, default `100`) controls the cutoff.
+(`SeasonPackUpgradeThreshold`, default `100`, must be between 0 and 100) controls the cutoff.
 
 > Also settable via the API: fields `seasonPackUpgrade` and `seasonPackUpgradeThreshold`
 > on `/api/v3/config/mediamanagement`.

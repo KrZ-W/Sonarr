@@ -37,6 +37,9 @@ namespace Sonarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.ScriptImportPath).IsValidPath().When(c => c.UseScriptImport);
 
             SharedValidator.RuleFor(c => c.MinimumFreeSpaceWhenImporting).GreaterThanOrEqualTo(100);
+
+            // krzw(season-pack): a percentage; above 100 could never accept, below 0 always would
+            SharedValidator.RuleFor(c => c.SeasonPackUpgradeThreshold).InclusiveBetween(0.0, 100.0);
         }
 
         protected override MediaManagementConfigResource ToResource(IConfigService model)
