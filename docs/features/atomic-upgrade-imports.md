@@ -52,6 +52,10 @@ Details worth knowing:
   simply removed. Either way nothing is lost.
 - **The parked name is invisible to scans.** `.krzw-upgrade-bak` is not a video
   extension, so a library rescan never imports a parked file.
+- **Import scripts still see the outgoing files.** `Sonarr_DeletedRelativePaths`,
+  `Sonarr_DeletedPaths` and `Sonarr_DeletedDateAdded` are populated at park time, so a
+  script-import hook run during the transfer gets them exactly as before. At that moment
+  the files are still on disk under their parked names; they are recycled only at finalize.
 - **Event ordering is safe.** The new file is linked to its episodes at commit time;
   the deferred delete event then finds no episodes still pointing at the old file and
   detaches nothing. This also closes two small upstream races (episodes briefly
@@ -68,6 +72,9 @@ the original's bytes are intact under the parked name:
 
 - The next library rescan reconciles the DB row (file "missing from disk") and the
   episode is re-grabbed as usual — self-healing, at the cost of a re-download.
+- If a later upgrade of the same slot finds a stale `*.krzw-upgrade-bak` in its way, it
+  sends it to the recycle bin (permanent delete only if recycling fails) before parking
+  the current file — nothing is silently destroyed.
 - To recover the file instead, just strip the suffix before rescanning:
 
 ```sh

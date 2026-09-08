@@ -15,5 +15,10 @@ namespace NzbDrone.Core.MediaFiles
 
         // Recycle-bin subfolder for the original, computed before parking.
         public string Subfolder { get; set; }
+
+        // The OldFiles entry exposed to the import script and notifications. Created at park time so
+        // consumers that run during the transfer (ScriptImportDecider) see it; its RecycleBinPath is
+        // filled in by FinalizeUpgrade.
+        public DeletedEpisodeFile Deleted { get; set; }
     }
 }
