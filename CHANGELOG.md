@@ -26,7 +26,8 @@ _Nothing yet._
   import and marked the grab failed mid-download. Such items now self-heal on the next
   refresh: the state reverts to `Downloading` and the stale warnings are cleared until
   the client actually reports the download complete. Settled states (`Imported`,
-  `Failed`, `Ignored`) are left untouched.
+  `Failed`, `Ignored`) are left untouched. See
+  [docs](docs/features/completed-download-handling.md#stuck-import-pending-self-heal).
 
 Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.10`.
 

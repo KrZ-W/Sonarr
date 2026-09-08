@@ -42,6 +42,30 @@ download-client config, field `checkForFinishedDownloadInterval` (minutes):
 
 A start line with no completion = a run that is still going or has hung.
 
+## Stuck "Import Pending" self-heal
+
+> **Since:** `v4.0.19.2979+krzw.10` · **Surface:** automatic — nothing to configure
+
+A tracked download whose client item is no longer reported as `Completed` and that is
+sitting in `ImportPending` or `ImportBlocked` is reverted to `Downloading`, and its
+status messages are cleared.
+
+**Why:** CDH returns early for any item the client does not report as `Completed`. So if
+the client misreads a still-running download as complete even once — this fork has seen
+it during external recheck/relocate operations — the item is promoted to `ImportPending`
+/ `ImportBlocked` with an import warning attached, and the early return then means
+nothing ever re-evaluates it. The queue entry stays stuck with a stale warning for the
+rest of the download's life, and external queue cleaners that treat a warning as a failed
+import will mark the grab failed **mid-download**.
+
+**Scope:** only `ImportPending` and `ImportBlocked` are reverted. Settled states
+(`Imported`, `Failed`, `Ignored`) are never touched, so the self-heal cannot resurrect a
+download that has already concluded. Genuine failures are unaffected — a client item
+reporting `Failed` is still handled by the failed-download path, which keys off the
+client status rather than the tracked state.
+
+Recovery is automatic on the next CDH run; no restart or queue intervention is needed.
+
 ## Configuration
 
 Set it via the API (there is no UI field). Read the current config, then PUT it back
@@ -64,7 +88,10 @@ It takes effect immediately — no restart needed.
 
 ## Source
 
-Commits: `e14b4a027` (configurable interval), `a72681500` (run logging). Key files:
+Commits: `e14b4a027` (configurable interval), `a72681500` (run logging),
+`e65ca9710` (ImportPending self-heal), `9928525f5` (its regression tests). Key files:
 `Configuration/ConfigService.cs`, `Jobs/TaskManager.cs`
 (`GetRefreshMonitoredInterval()`), `Download/DownloadProcessingService.cs`,
-`Sonarr.Api.V3/Config/DownloadClientConfigResource.cs`.
+`Sonarr.Api.V3/Config/DownloadClientConfigResource.cs`,
+`Download/CompletedDownloadService.cs` (`Check()` early-return branch),
+`Download/TrackedDownloads/TrackedDownload.cs` (`ResetStatus()`).

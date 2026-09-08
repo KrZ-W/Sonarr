@@ -111,7 +111,7 @@ and renames (they share a single disk-access slot).
 3. Watch the log: each run logs its start and duration; a run that **exceeds** the
    interval is logged at **Warn**, and a start with no completion means it's stuck.
 
-> Full reference: [Completed Download Handling Interval](features/completed-download-handling.md).
+> Full reference: [Completed Download Handling](features/completed-download-handling.md).
 
 ---
 
