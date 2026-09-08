@@ -10,7 +10,22 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- **User scene mapping import pipeline moved into Core**
+  (`DataAugmentation/Scene/UserSceneMappingImportService`). The endpoint is now a thin
+  controller; series resolution, the library-title guard, the loop and the counting
+  previously lived in the API project, where the guard was untestable. Behaviour is
+  unchanged for existing callers. Improvements that came with the move: a row that
+  throws is reported in a new `seriesFailed` list and the request continues instead of
+  returning HTTP 500 after partial inserts; requests are validated up front (max 5000
+  series, 100 titles per series, 500 characters per title → HTTP 400); the summary
+  gains `titlesGuardedLibrary`, `titlesConflictingMapping`, `titlesUnsearchable` and
+  `titlesAlreadyPresent` (their sum is the existing `titlesSkipped`), sourced from a new
+  `UpsertUserMappingsDetailed` that reports why each title was skipped; `titles` is
+  accepted as an alias of `missingFrenchTitles`. Brings the Sonarr importer to the same
+  shape as Radarr's krzw.2 refactor. See
+  [docs](docs/features/user-scene-mappings.md#architecture).
 
 ## [v4.0.19.2979+krzw.12] — based on Sonarr 4.0.19.2979
 
