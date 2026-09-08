@@ -11,7 +11,7 @@ fork; this document describes the Sonarr versions specifically.
 - **Upstream base:** Sonarr `4.0.19.2979`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.11`
+- **Current fork version:** `v4.0.19.2979+krzw.12`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
@@ -82,7 +82,14 @@ See [features/docker-deployment.md](docs/features/docker-deployment.md) for a fu
 
 ## Relationship to upstream
 
-- `upstream` remote → `Sonarr/Sonarr` (the real project, v4 line)
-- `myfork` remote → `KrZ-W/Sonarr` (this fork)
-- Each feature lives on its own `feature/*` or `fix/*` branch and is merged into
+- The clone has one remote, `origin` → `KrZ-W/Sonarr` (this fork). Upstream
+  `Sonarr/Sonarr` is fetched by URL when rebasing (see
+  [docs/releasing.md](docs/releasing.md)); `origin/main`, `origin/develop` and
+  `origin/v5-develop` are upstream mirrors refreshed by hand, not the base.
+- Every fork change to an upstream file carries a `krzw(<feature>)` marker comment
+  (`// krzw(atomic-upgrade): ...`), so fork hunks are identifiable at rebase time;
+  `git grep -n 'krzw('` lists them. Files that cannot hold comments (`en.json`,
+  generated `*.css.d.ts`) are the only unmarked ones.
+- Each feature lives on its own `feature/*` or `fix/*` branch cut from the upstream
+  release tag the fork is based on (`-main` suffix = upstream main line), and is merged into
   `personal/all-features-main`. See [CHANGELOG.md](CHANGELOG.md) for per-feature history.

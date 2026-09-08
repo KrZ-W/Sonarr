@@ -12,6 +12,31 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.12] — based on Sonarr 4.0.19.2979
+
+### Changed
+
+- **Fork markers:** every fork change to an upstream source file now carries a
+  `krzw(<feature>)` comment (118 markers across 38 files; previously 3). Comment-only
+  change, no functional difference. `git grep -n 'krzw('` lists them.
+- **Upstream base confirmed and tagged:** the aggregate sits exactly on upstream
+  `main` at `v4.0.19.2979` (`4ff1b7800`); that tag is now on the fork so
+  `docs/releasing.md`'s base-version check works. Upstream `main` has not moved since,
+  so no rebase was needed.
+- **CI:** `docker-image.yml` now also builds `feat/**` branches; `docker-release.yml`
+  only triggers on `v*krzw*` tags so a mirrored upstream tag can never publish a
+  release image.
+- **Repository hygiene:** default branch is `personal/all-features-main`; the 45
+  upstream development branches that had been mirrored into the fork and 5 upstream
+  leftovers with no fork commits were removed (they still exist on Sonarr/Sonarr);
+  `origin/main`, `origin/develop` and `origin/v5-develop` are now current upstream
+  mirrors instead of 2026-05 snapshots.
+- Docs: `docs/releasing.md` and `FORK.md` no longer reference non-existent
+  `upstream`/`myfork` remotes; the base-version check works on this clone; the marker
+  convention is documented.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.12`.
+
 ## [v4.0.19.2979+krzw.11] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -270,7 +295,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.11...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.12...HEAD
+[v4.0.19.2979+krzw.12]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.12
 [v4.0.19.2979+krzw.11]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.11
 [v4.0.19.2979+krzw.10]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.10
 [v4.0.19.2979+krzw.9]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.9
