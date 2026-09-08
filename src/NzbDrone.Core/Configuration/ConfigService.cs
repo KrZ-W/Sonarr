@@ -124,6 +124,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("MinimumAge", value); }
         }
 
+        // krzw(indexer-cooldown): setting
         public string IndexerCooldownPeriods
         {
             get { return GetValue("IndexerCooldownPeriods", string.Empty); }
@@ -145,6 +146,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EnableCompletedDownloadHandling", value); }
         }
 
+        // krzw(cdh-interval): setting (minutes, clamped to >= 1 in TaskManager)
         public int CheckForFinishedDownloadInterval
         {
             get { return GetValueInt("CheckForFinishedDownloadInterval", 1); }
@@ -271,6 +273,7 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("EpisodeTitleRequired", value); }
         }
 
+        // krzw(season-pack): settings
         public SeasonPackUpgradeType SeasonPackUpgrade
         {
             get { return GetValueEnum("SeasonPackUpgrade", SeasonPackUpgradeType.All); }
@@ -439,6 +442,7 @@ namespace NzbDrone.Core.Configuration
             return Convert.ToInt32(GetValue(key, defaultValue));
         }
 
+        // krzw(season-pack): double accessor for the threshold
         private double GetValueDouble(string key, double defaultValue = 0)
         {
             return Convert.ToDouble(GetValue(key, defaultValue), CultureInfo.InvariantCulture);
@@ -481,6 +485,7 @@ namespace NzbDrone.Core.Configuration
             SetValue(key, value.ToString());
         }
 
+        // krzw(season-pack)
         private void SetValue(string key, double value)
         {
             SetValue(key, value.ToString(CultureInfo.InvariantCulture));

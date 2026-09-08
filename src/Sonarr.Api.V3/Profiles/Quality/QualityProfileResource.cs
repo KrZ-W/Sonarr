@@ -37,7 +37,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
         public int Format { get; set; }
         public string Name { get; set; }
         public int Score { get; set; }
-        public bool Priority { get; set; }
+        public bool Priority { get; set; }  // krzw(cf-priority)
     }
 
     public static class ProfileResourceMapper
@@ -87,7 +87,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
                 Format = model.Format.Id,
                 Name = model.Format.Name,
                 Score = model.Score,
-                Priority = model.Priority
+                Priority = model.Priority  // krzw(cf-priority)
             };
         }
 
@@ -135,7 +135,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
             {
                 Format = new CustomFormat { Id = resource.Format },
                 Score = resource.Score,
-                Priority = resource.Priority
+                Priority = resource.Priority  // krzw(cf-priority)
             };
         }
 

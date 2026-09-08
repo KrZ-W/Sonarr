@@ -223,6 +223,7 @@ class EditQualityProfileModalContentConnector extends Component {
     });
   };
 
+  // krzw(cf-priority)
   onQualityProfileFormatItemPriorityChange = (id, priority) => {
     const qualityProfile = _.cloneDeep(this.props.item);
     const formatItems = qualityProfile.formatItems.value;

@@ -4,7 +4,7 @@ export interface QualityProfileFormatItem {
   format: number;
   name: string;
   score: number;
-  priority: boolean;
+  priority: boolean; // krzw(cf-priority)
 }
 
 interface CustomFormat extends ModelBase {

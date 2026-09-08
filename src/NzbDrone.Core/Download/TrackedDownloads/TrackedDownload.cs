@@ -36,6 +36,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             StatusMessages = statusMessages;
         }
 
+        // krzw(cdh-selfheal): clears stale import warnings when reverting to Downloading
         public void ResetStatus()
         {
             Status = TrackedDownloadStatus.Ok;

@@ -12,14 +12,14 @@ namespace NzbDrone.Core.CustomFormats
         public long Size { get; set; }
         public IndexerFlags IndexerFlags { get; set; }
         public List<Language> Languages { get; set; }
-        public List<string> AudioTitles { get; set; }
+        public List<string> AudioTitles { get; set; }  // krzw(audio-title)
         public string Filename { get; set; }
         public ReleaseType ReleaseType { get; set; }
 
         public CustomFormatInput()
         {
             Languages = new List<Language>();
-            AudioTitles = new List<string>();
+            AudioTitles = new List<string>();  // krzw(audio-title)
         }
 
         // public CustomFormatInput(ParsedEpisodeInfo episodeInfo, Series series)

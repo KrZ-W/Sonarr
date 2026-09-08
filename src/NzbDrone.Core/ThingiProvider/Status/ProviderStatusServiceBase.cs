@@ -28,6 +28,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
         protected readonly IRuntimeInfo _runtimeInfo;
         protected readonly Logger _logger;
 
+        // krzw(indexer-cooldown): max level derives from the (overridable) period table
         private int? _maximumEscalationLevelOverride;
 
         protected int MaximumEscalationLevel
@@ -39,6 +40,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
         protected TimeSpan MinimumTimeSinceInitialFailure { get; set; } = TimeSpan.Zero;
         protected TimeSpan MinimumTimeSinceStartup { get; set; } = TimeSpan.FromMinutes(15);
 
+        // krzw(indexer-cooldown): hook for a configured schedule
         protected virtual int[] GetEscalationPeriods()
         {
             return EscalationBackOff.Periods;
@@ -64,6 +66,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
         protected virtual TimeSpan CalculateBackOffPeriod(TModel status)
         {
+            // krzw(indexer-cooldown)
             var periods = GetEscalationPeriods();
             var level = Math.Min(periods.Length - 1, status.EscalationLevel);
 
@@ -139,6 +142,7 @@ namespace NzbDrone.Core.ThingiProvider.Status
 
                 if (inStartupGracePeriod && minimumBackOff == TimeSpan.Zero && status.DisabledTill.HasValue)
                 {
+                    // krzw(indexer-cooldown)
                     var startupGracePeriods = GetEscalationPeriods();
                     var startupGraceIndex = Math.Min(2, startupGracePeriods.Length - 1);
                     var maximumDisabledTill = now + TimeSpan.FromSeconds(startupGracePeriods[startupGraceIndex]);

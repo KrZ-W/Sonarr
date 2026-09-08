@@ -11,9 +11,9 @@ namespace NzbDrone.Core.Parser
         private static readonly HashSet<IsoLanguage> All = new HashSet<IsoLanguage>
                                                            {
                                                                new IsoLanguage("en", "", "eng", Language.English),
-                                                               new IsoLanguage("en", "ca", "eng", Language.English),
+                                                               new IsoLanguage("en", "ca", "eng", Language.English),  // krzw(regional-language)
                                                                new IsoLanguage("fr", "fr", "fra", Language.French),
-                                                               new IsoLanguage("fr", "ca", "fra", Language.French),
+                                                               new IsoLanguage("fr", "ca", "fra", Language.French),  // krzw(regional-language)
                                                                new IsoLanguage("es", "", "spa", Language.Spanish),
                                                                new IsoLanguage("de", "de", "deu", Language.German),
                                                                new IsoLanguage("it", "", "ita", Language.Italian),

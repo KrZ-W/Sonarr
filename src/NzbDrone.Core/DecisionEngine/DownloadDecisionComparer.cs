@@ -31,7 +31,7 @@ namespace NzbDrone.Core.DecisionEngine
         {
             var comparers = new List<CompareDelegate>
             {
-                ComparePriorityFormatScore,
+                ComparePriorityFormatScore,  // krzw(cf-priority): ranked before quality
                 CompareQuality,
                 CompareCustomFormatScore,
                 CompareProtocol,
@@ -71,6 +71,7 @@ namespace NzbDrone.Core.DecisionEngine
             return CompareByReverse(x.RemoteEpisode.Release, y.RemoteEpisode.Release, release => release.IndexerPriority);
         }
 
+        // krzw(cf-priority)
         private int ComparePriorityFormatScore(DownloadDecision x, DownloadDecision y)
         {
             // Priority custom formats (e.g. a regional language) are ranked BEFORE quality,

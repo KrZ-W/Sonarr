@@ -36,5 +36,5 @@ public enum ImportRejectionReason
     NotQualityUpgrade,
     NotRevisionUpgrade,
     NotCustomFormatUpgrade,
-    CustomFormatMinimumScore
+    CustomFormatMinimumScore  // krzw(import-enforcement)
 }

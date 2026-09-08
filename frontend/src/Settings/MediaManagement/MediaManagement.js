@@ -100,6 +100,7 @@ const fileDateOptions = [
   }
 ];
 
+// krzw(season-pack)
 const seasonPackUpgradeOptions = [
   {
     key: 'all',
@@ -391,6 +392,7 @@ class MediaManagement extends Component {
                     />
                   </FormGroup>
 
+                  {/* krzw(season-pack) */}
                   <FormGroup size={sizes.MEDIUM}>
                     <FormLabel>{translate('SeasonPackUpgradeAllowLabel')}</FormLabel>
 
