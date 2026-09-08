@@ -19,7 +19,7 @@ versioning scheme, see [`../FORK.md`](../FORK.md). For the release history, see
 | [Import-time Enforcement](features/import-time-enforcement.md) | MinFormatScore enforced at import, not just grab |
 | [Atomic Upgrade Imports](features/atomic-upgrade-imports.md) | Existing file survives unless the replacement import fully commits; failed upgrades restore everything |
 | [Season-Pack Partial Fill](features/season-pack-partial-fill.md) | Full-season packs can fill missing / upgrade some episodes |
-| [Completed Download Handling Interval](features/completed-download-handling.md) | Configurable CDH interval + per-run logging |
+| [Completed Download Handling](features/completed-download-handling.md) | Configurable CDH interval + per-run logging + stuck `ImportPending` self-heal |
 | [Regional Language Parsing](features/regional-language-parsing.md) | `en-CA` / `fr-CA` parsing entries |
 | [Configurable Indexer Cooldown](features/configurable-indexer-cooldown.md) | Editable indexer back-off/escalation schedule |
 | [Docker / GHCR Deployment](features/docker-deployment.md) | LinuxServer.io-style image published to GHCR |
