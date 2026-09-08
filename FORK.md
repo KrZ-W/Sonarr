@@ -11,7 +11,7 @@ fork; this document describes the Sonarr versions specifically.
 - **Upstream base:** Sonarr `4.0.19.2979`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.12`
+- **Current fork version:** `v4.0.19.2979+krzw.13`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
