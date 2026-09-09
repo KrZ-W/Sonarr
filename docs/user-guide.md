@@ -11,6 +11,7 @@ For the *why* and full reference, follow the links into [features/](features/).
 - [Recipe: Fill a partial season from a season pack](#recipe-fill-a-partial-season-from-a-season-pack)
 - [Recipe: Keep CDH from blocking manual imports](#recipe-keep-cdh-from-blocking-manual-imports)
 - [Recipe: Add missing French/Quebec series titles](#recipe-add-missing-frenchquebec-series-titles)
+- [Recipe: Let IMDb fill in French/Quebec series titles automatically](#recipe-let-imdb-fill-in-frenchquebec-series-titles-automatically)
 - [Recipe: Tune indexer cooldown](#recipe-tune-indexer-cooldown)
 - [Recipe: Run the fork in Docker](#recipe-run-the-fork-in-docker)
 
@@ -144,6 +145,31 @@ Imported titles appear in the series page's **Alternate Titles** list and are sa
 re-import after adding series (already-present titles are skipped).
 
 > Full reference: [User Scene Mappings](features/user-scene-mappings.md).
+
+---
+
+## Recipe: Let IMDb fill in French/Quebec series titles automatically
+
+**Goal:** stop maintaining a curated JSON file — have the instance pull the missing
+titles from IMDb's public dataset itself, for the library and for every series you add.
+
+1. *Settings → Metadata → IMDb Title Provider*: tick **Enable**. Defaults: Regions
+   `CA,FR`, Languages `fr`, Refresh Interval `7` days. Save.
+2. *System → Tasks* → run **Imdb Title Dataset Refresh** once (or
+   `POST /api/v3/command` with `{"name":"ImdbTitleDatasetRefresh"}`). The first run
+   downloads ~300 MB; the log ends with `IMDb titles applied to library: …`.
+3. Spot-check a series: its *Alternate Titles* list (or `GET /api/v3/series/<id>` →
+   `alternateTitles`) shows the new titles; a French release name now parses to it.
+
+From now on the dataset is re-downloaded on the interval (skipped when IMDb reports it
+unchanged), every series you add is synced within seconds, and a health warning appears
+if the index is missing or has not been rebuilt for twice the interval. Only series with
+an IMDb id are covered.
+
+> **Licence:** IMDb's datasets are for personal, non-commercial use. The fork downloads
+> them on your instance only and never redistributes them.
+
+> Full reference: [IMDb Title Provider](features/imdb-title-provider.md).
 
 ---
 
