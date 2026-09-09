@@ -11,7 +11,7 @@ fork; this document describes the Sonarr versions specifically.
 - **Upstream base:** Sonarr `4.0.19.2979`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.14`
+- **Current fork version:** `v4.0.19.2979+krzw.15`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
@@ -57,8 +57,8 @@ The `+` is valid in git tags / GitHub releases / SemVer but **not** in container
 tags, so the Docker tag replaces `+` with `-`:
 
 ```
-git tag      v4.0.19.2979+krzw.14
-docker image ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.14
+git tag      v4.0.19.2979+krzw.15
+docker image ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.15
 ```
 
 See [docs/releasing.md](docs/releasing.md) for how to cut a release.
@@ -71,7 +71,7 @@ See [docs/releasing.md](docs/releasing.md) for how to cut a release.
 
 ```bash
 # Pinned to a release (recommended for stability)
-docker pull ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.14
+docker pull ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.15
 
 # Bleeding edge — tip of personal/all-features-main
 docker pull ghcr.io/krz-w/sonarr:latest

@@ -167,7 +167,7 @@ re-import after adding series (already-present titles are skipped).
 ```yaml
 services:
   sonarr:
-    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.14   # pin to a release
+    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.15   # pin to a release
     container_name: sonarr
     environment:
       - PUID=1000
