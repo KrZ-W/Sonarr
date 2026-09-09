@@ -57,7 +57,7 @@ namespace NzbDrone.Core.MediaFiles.AudioLanguage
                     return null;
                 }
 
-                return File.ReadAllBytes(clipPath);
+                return _diskProvider.ReadAllBytes(clipPath);
             }
             catch (Exception ex)
             {
@@ -90,12 +90,12 @@ namespace NzbDrone.Core.MediaFiles.AudioLanguage
         }
 
         /// <summary>The bundled ffmpeg next to the Sonarr binary when present (the image symlinks it there), else PATH.</summary>
-        public static string ResolveBinary()
+        public string ResolveBinary()
         {
             var name = OsInfo.IsWindows ? "ffmpeg.exe" : "ffmpeg";
             var bundled = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
 
-            return File.Exists(bundled) ? bundled : name;
+            return _diskProvider.FileExists(bundled) ? bundled : name;
         }
 
         private static string Quote(string value)

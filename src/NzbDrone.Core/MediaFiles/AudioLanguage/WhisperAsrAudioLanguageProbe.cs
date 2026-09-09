@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Net;
 using NLog;
 using NzbDrone.Common.Extensions;
@@ -43,15 +44,26 @@ namespace NzbDrone.Core.MediaFiles.AudioLanguage
                     return null;
                 }
 
-                var timeout = TimeSpan.FromSeconds(Math.Max(1, _configService.AudioLanguageVerificationTimeout));
+                // The setting is a per-track total: the clip extraction gets at most a third of it, the
+                // detector call whatever is left once the clip exists.
+                var budget = TimeSpan.FromSeconds(Math.Max(1, _configService.AudioLanguageVerificationTimeout));
                 var length = TimeSpan.FromSeconds(Math.Max(1, _configService.AudioLanguageVerificationClipLength));
                 var offset = ClipOffset(TimeSpan.FromSeconds(Math.Max(0, _configService.AudioLanguageVerificationClipOffset)), length, runtime);
 
-                var clip = _clipExtractor.Extract(path, audioStreamIndex, offset, length, timeout);
+                var stopwatch = Stopwatch.StartNew();
+                var clip = _clipExtractor.Extract(path, audioStreamIndex, offset, length, ExtractionTimeout(budget));
 
                 if (clip == null || clip.Length == 0)
                 {
                     _logger.Warn("Audio language verification skipped for stream {0} of '{1}': no clip could be extracted", audioStreamIndex, path);
+                    return null;
+                }
+
+                var timeout = DetectorTimeout(budget, stopwatch.Elapsed);
+
+                if (timeout <= TimeSpan.Zero)
+                {
+                    _logger.Warn("Audio language verification skipped for stream {0} of '{1}': the clip extraction used the whole {2}s budget", audioStreamIndex, path, (int)budget.TotalSeconds);
                     return null;
                 }
 
@@ -99,6 +111,18 @@ namespace NzbDrone.Core.MediaFiles.AudioLanguage
                 _logger.Warn(ex, "Audio language verification failed for stream {0} of '{1}', importing on existing evidence", audioStreamIndex, path);
                 return null;
             }
+        }
+
+        /// <summary>At most a third of the per-track budget goes to ffmpeg.</summary>
+        public static TimeSpan ExtractionTimeout(TimeSpan budget)
+        {
+            return TimeSpan.FromTicks(budget.Ticks / 3);
+        }
+
+        /// <summary>Whatever is left of the per-track budget after the extraction; zero or less means "out of time".</summary>
+        public static TimeSpan DetectorTimeout(TimeSpan budget, TimeSpan extractionElapsed)
+        {
+            return budget - extractionElapsed;
         }
 
         /// <summary>Configured offset, or the middle of the file when it is too short for offset + length.</summary>

@@ -65,11 +65,14 @@ namespace NzbDrone.Core.Configuration
                     continue;
                 }
 
-                var equal = configValue.Value.ToString().Equals(currentValue.ToString());
+                // krzw(audio-language-verification): culture-neutral so a comma-decimal locale (fr_FR) can
+                // save and re-read double settings; the getters parse with InvariantCulture.
+                var newValue = Convert.ToString(configValue.Value, CultureInfo.InvariantCulture);
+                var equal = newValue.Equals(Convert.ToString(currentValue, CultureInfo.InvariantCulture));
 
                 if (!equal)
                 {
-                    SetValue(configValue.Key, configValue.Value.ToString());
+                    SetValue(configValue.Key, newValue);
                 }
             }
 
@@ -282,7 +285,14 @@ namespace NzbDrone.Core.Configuration
             {
                 var raw = GetValue("AudioLanguageVerificationConfidenceThreshold", "0.85");
 
-                return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : 0.85;
+                // Invariant first; a value written by an older build in the current culture still reads back.
+                if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ||
+                    double.TryParse(raw, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
+                {
+                    return value;
+                }
+
+                return 0.85;
             }
 
             set

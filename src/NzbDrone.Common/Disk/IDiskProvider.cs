@@ -37,6 +37,7 @@ namespace NzbDrone.Common.Disk
         bool TryCreateRefLink(string source, string destination);
         void DeleteFolder(string path, bool recursive);
         string ReadAllText(string filePath);
+        byte[] ReadAllBytes(string filePath);  // krzw(audio-language-verification)
         void WriteAllText(string filename, string contents);
         void FolderSetLastWriteTime(string path, DateTime dateTime);
         void FileSetLastWriteTime(string path, DateTime dateTime);
