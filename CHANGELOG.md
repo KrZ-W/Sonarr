@@ -10,7 +10,20 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **IMDb Title Provider.** Settings → Metadata gains an *IMDb Title Provider* section
+  (Enabled, Regions `CA,FR`, Languages `fr`, Refresh Interval 7 days) backed by a new
+  `/api/v3/config/metadata` endpoint. A new scheduled task `ImdbTitleDatasetRefresh`
+  downloads IMDb's `title.akas` dataset (conditionally on ETag / Last-Modified), streams
+  the rows for the configured regions/languages into a local `imdb-akas.db` index (atomic
+  replace, previous index kept on failure) and then adds every title a series is missing
+  as a user scene mapping through the existing importer, keyed on the series' IMDb id.
+  New series are synced on `SeriesAddedEvent` and after each metadata refresh; rows whose
+  attributes say `literal` are skipped; the region lands in the mapping's comment. A
+  health check warns while the feature is on but the index is missing or older than twice
+  the interval. Replaces the external `process_akas_series.py` feeder. Docs:
+  [features/imdb-title-provider.md](docs/features/imdb-title-provider.md).
 
 ## [v4.0.19.2979+krzw.15] — based on Sonarr 4.0.19.2979
 

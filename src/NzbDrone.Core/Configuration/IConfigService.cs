@@ -59,6 +59,12 @@ namespace NzbDrone.Core.Configuration
         int MinimumAge { get; set; }
         string IndexerCooldownPeriods { get; set; }  // krzw(indexer-cooldown)
 
+        // krzw(imdb-title-provider): Metadata
+        bool ImdbTitleProviderEnabled { get; set; }
+        string ImdbTitleProviderRegions { get; set; }
+        string ImdbTitleProviderLanguages { get; set; }
+        int ImdbTitleProviderRefreshInterval { get; set; }
+
         ListSyncLevelType ListSyncLevel { get; set; }
         int ListSyncTag { get; set; }
 
