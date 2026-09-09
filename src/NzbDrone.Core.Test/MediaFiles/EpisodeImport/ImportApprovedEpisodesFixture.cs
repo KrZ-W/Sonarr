@@ -10,6 +10,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -385,6 +386,32 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
             Mocker.GetMock<IUpgradeMediaFiles>()
                   .Verify(v => v.UpgradeEpisodeFile(It.Is<EpisodeFile>(e => e.SceneName == firstDecision.LocalEpisode.SceneName), _approvedDecisions.First().LocalEpisode, false),
                       Times.Once());
+        }
+
+        // krzw(audio-language-verification)
+        [Test]
+        public void should_carry_audio_language_verification_to_the_episode_file()
+        {
+            var verification = new List<AudioLanguageVerification>
+            {
+                new AudioLanguageVerification { StreamIndex = 0, TaggedLanguage = "eng", DetectedLanguage = "fr", Confidence = 0.97 }
+            };
+
+            _approvedDecisions.First().LocalEpisode.AudioLanguageVerification = verification;
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<EpisodeFile>(c => c.AudioLanguageVerification == verification)), Times.Once());
+        }
+
+        [Test]
+        public void should_leave_audio_language_verification_null_when_nothing_was_probed()
+        {
+            _approvedDecisions.First().LocalEpisode.AudioLanguageVerification = null;
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<EpisodeFile>(c => c.AudioLanguageVerification == null)), Times.Once());
         }
     }
 }

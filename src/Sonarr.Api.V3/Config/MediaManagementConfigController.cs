@@ -37,6 +37,13 @@ namespace Sonarr.Api.V3.Config
             SharedValidator.RuleFor(c => c.ScriptImportPath).IsValidPath().When(c => c.UseScriptImport);
 
             SharedValidator.RuleFor(c => c.MinimumFreeSpaceWhenImporting).GreaterThanOrEqualTo(100);
+
+            // krzw(audio-language-verification)
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationEndpoint).IsValidUrl().When(c => c.AudioLanguageVerificationEnabled);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationConfidenceThreshold).InclusiveBetween(0, 1);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationClipOffset).GreaterThanOrEqualTo(0);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationClipLength).InclusiveBetween(1, 600);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationTimeout).InclusiveBetween(1, 3600);
         }
 
         protected override MediaManagementConfigResource ToResource(IConfigService model)
