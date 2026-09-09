@@ -13,6 +13,7 @@ import ImportListExclusion from 'typings/ImportListExclusion';
 import ImportListOptionsSettings from 'typings/ImportListOptionsSettings';
 import Indexer from 'typings/Indexer';
 import IndexerFlag from 'typings/IndexerFlag';
+import MetadataOptionsSettings from 'typings/MetadataOptionsSettings'; // krzw(imdb-title-provider)
 import Notification from 'typings/Notification';
 import QualityProfile from 'typings/QualityProfile';
 import General from 'typings/Settings/General';
@@ -74,6 +75,11 @@ export interface ImportListOptionsSettingsAppState
   extends AppSectionItemState<ImportListOptionsSettings>,
     AppSectionSaveState {}
 
+// krzw(imdb-title-provider)
+export interface MetadataOptionsSettingsAppState
+  extends AppSectionItemState<MetadataOptionsSettings>,
+    AppSectionSaveState {}
+
 export interface ImportListExclusionsSettingsAppState
   extends AppSectionState<ImportListExclusion>,
     AppSectionSaveState,
@@ -98,6 +104,7 @@ interface SettingsAppState {
   indexers: IndexerAppState;
   languages: LanguageSettingsAppState;
   metadata: MetadataAppState;
+  metadataOptions: MetadataOptionsSettingsAppState; // krzw(imdb-title-provider)
   naming: NamingAppState;
   namingExamples: NamingExamplesAppState;
   notifications: NotificationAppState;
