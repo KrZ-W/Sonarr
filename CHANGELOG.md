@@ -10,11 +10,17 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.15] — based on Sonarr 4.0.19.2979
+
 ### Changed
 
 - Docs: every feature page gains an **Upstream** section cross-referencing the Sonarr
   issues it addresses, is adjacent to, or was declined as, and FORK.md gains an index table of
   those issues so people arriving from upstream can find the corresponding patch. Docs only.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.15`.
 
 ## [v4.0.19.2979+krzw.14] — based on Sonarr 4.0.19.2979
 
@@ -353,7 +359,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.14...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.15...HEAD
+[v4.0.19.2979+krzw.15]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.15
 [v4.0.19.2979+krzw.14]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.14
 [v4.0.19.2979+krzw.13]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.13
 [v4.0.19.2979+krzw.12]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.12
