@@ -29,6 +29,12 @@ small, focused parsing fix — there are **no settings** and no behavior to conf
   catches `FRENCH-CA`, while the Audio Title condition catches VFQ from the audio track
   when the filename says only `FRENCH`.
 
+## Upstream
+
+Related upstream Sonarr issue: [Sonarr#269](https://github.com/Sonarr/Sonarr/issues/269) —
+*TVDB Data in other Languages* (open, priority:medium) is upstream's umbrella for
+language-aware titles and matching; the two parsing entries here are a much narrower fix.
+
 ## Source
 
 Commit: `9034942c3`. Key file: `Parser/IsoLanguages.cs`.

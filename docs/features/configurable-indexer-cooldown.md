@@ -51,6 +51,12 @@ Rules:
 2. **Options → Indexer Cooldown Periods** — enter your CSV, e.g. `0,2,10,30,120`.
 3. Save.
 
+## Upstream
+
+No open or declined upstream Sonarr request for an editable back-off schedule was found
+(searched 2026-09-09). [Sonarr#3132](https://github.com/Sonarr/Sonarr/issues/3132) (closed
+2023) was about aggregator error handling, not the schedule.
+
 ## Source
 
 Commit: `94de4c188`. Key files: `Configuration/ConfigService.cs`,

@@ -158,6 +158,26 @@ title, because `FindByTitle` throws when two library series share a clean title 
 Office UK/US). The `missingFrenchTitles` field name is a property of the curated
 dataset and exists only in the API layer (`UserSceneMappingImportResourceMapper`).
 
+## Upstream
+
+Requested upstream and closed as **not planned** (state as of 2026-09-09; this fork is not
+affiliated with the Sonarr team and does not submit upstream):
+
+- [Sonarr#8806](https://github.com/Sonarr/Sonarr/issues/8806) — *Allow user-added alternate
+  titles to be used for search* (closed not planned, July 2026): "likely something we'll come
+  back to, but at the moment it's not something we're looking to add." This feature is that
+  request.
+- [Sonarr#6233](https://github.com/Sonarr/Sonarr/issues/6233) — *Custom title search or
+  Alternative title name* and [Sonarr#6166](https://github.com/Sonarr/Sonarr/issues/6166) —
+  *Sonarr Custom Search* (both closed not planned 2023): upstream's position is that aliases
+  should be requested through the scene-mapping form so everyone benefits.
+- [Sonarr#8058](https://github.com/Sonarr/Sonarr/issues/8058) — *Allow disabling alias search
+  per show* (closed not planned 2025): "no plans to make aliases configurable locally".
+- [Sonarr#8100](https://github.com/Sonarr/Sonarr/issues/8100) — original-language series names
+  (closed not planned 2025), pointing at the open
+  [Sonarr#269 TVDB Data in other Languages](https://github.com/Sonarr/Sonarr/issues/269) as the
+  sanctioned track.
+
 ## Source
 
 Commits: `7c8d9d636` (feature), plus the review fixes on `feat/user-alt-titles`

@@ -10,7 +10,11 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- Docs: every feature page gains an **Upstream** section cross-referencing the Sonarr
+  issues it addresses, is adjacent to, or was declined as, and FORK.md gains an index table of
+  those issues so people arriving from upstream can find the corresponding patch. Docs only.
 
 ## [v4.0.19.2979+krzw.14] — based on Sonarr 4.0.19.2979
 

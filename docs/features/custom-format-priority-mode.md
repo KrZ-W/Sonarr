@@ -79,6 +79,20 @@ instead of only a bare delta.
   MinFormatScore check (Sonarr has no profile Language field).
 - User Guide: [Make VFQ win over higher-quality audio](../user-guide.md#recipe-make-vfq-win-over-higher-quality-audio).
 
+## Upstream
+
+Requested upstream and **declined** — this stays a fork-only feature by design:
+
+- [Sonarr#3394](https://github.com/Sonarr/Sonarr/issues/3394) — *Prevent Downgrading Language
+  during Quality Upgrade* (+6, closed 2022): "This should be achievable with Custom Formats in
+  v4."
+- [Sonarr#6762](https://github.com/Sonarr/Sonarr/issues/6762) — *easier language priority
+  settings* (closed not planned 2024): "We have no plans to add languages back to quality
+  profiles."
+
+Plain custom formats cannot express "language first, then quality", which is exactly what the
+per-CF **Priority** flag adds.
+
 ## Source
 
 Commits: `91c955a20` (per-CF flag), `38a5f9b68` (grab), `453ff6cd3` (import),

@@ -92,6 +92,16 @@ survives even a generic release name. This is a port of the same Radarr fix.
   from importing over a correct one once VFQ is scored properly.
 - User Guide: [Detect VFQ from audio tracks](../user-guide.md#recipe-detect-vfq-from-audio-tracks).
 
+## Upstream
+
+Related upstream Sonarr discussion (state as of 2026-09-09):
+
+- [Sonarr#5598](https://github.com/Sonarr/Sonarr/issues/5598) — *Improve CF Comparison Between
+  Release and File* (open, +19, discussion). Grading files by their actual media details rather
+  than the release name is the topic of that thread; this condition is one concrete form of it.
+- [Sonarr#6710](https://github.com/Sonarr/Sonarr/issues/6710) — honour custom formats from
+  media details (closed 2024, "covered by #5598").
+
 ## Source
 
 Commit: `6499abf71`. Key files:
