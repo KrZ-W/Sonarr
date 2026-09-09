@@ -82,6 +82,61 @@ A file that fails will be rejected at import with reason `CustomFormatMinimumSco
 
 ---
 
+## Recipe: Rescue mislabeled French audio
+
+**Goal:** a season pack named `FRENCH`/`VFQ` whose episodes carry their French track
+tagged `eng` or `und` (very common with Quebec dubs: GRIMM, X-Files, Walking Dead…)
+should import as French instead of being rejected by your "Not French" custom format —
+and a pack that merely *claims* French should still be refused, with a reason that says
+the audio was actually checked.
+
+1. Run a [whisper-asr-webservice](https://github.com/ahmetoner/whisper-asr-webservice)
+   container reachable from Sonarr (the same one Bazarr's Whisper provider uses; the
+   `base` model is enough for language identification):
+
+   ```yaml
+   whisper:
+     image: onerahmet/openai-whisper-asr-webservice:latest
+     environment:
+       - ASR_MODEL=base
+       - ASR_ENGINE=faster_whisper
+   ```
+
+2. **Settings → Media Management → show advanced → Audio Language Verification:** tick
+   **Enable**, set **Whisper Endpoint** to `http://whisper:9000`, keep the defaults
+   (threshold `0.85`, clip at 300 s for 30 s, *Verify Tagged Tracks* = Never). Save.
+
+3. Make sure the quality profile of the series you care about uses a custom format with a
+   **Language** condition (a positively scored *Language: French*, or the negatively
+   scored *Not French* from the [wrong-language recipe](#recipe-stop-wrong-language-files-from-importing)).
+   Sonarr has no profile Language field: without a language custom format, nothing is
+   ever probed.
+
+That's it. On the next import whose tags disagree with the release claim, Sonarr extracts
+a clip of each suspicious track with the bundled `ffmpeg`, asks Whisper once per distinct
+track layout in the pack, and:
+
+- a confident `fr` detection makes the episodes import with `Languages = French` — the
+  "Not French" custom format no longer matches and a French release is not offered as an
+  upgrade;
+- no French anywhere keeps the rejection, now worded
+  `… Audio verified (detected en 0.97, en 0.94)`;
+- Whisper down or slow → one warning in the log and the import behaves exactly as before
+  you enabled the feature.
+
+The outcome is stored per track on each episode file (`audioLanguageVerification` in
+`GET /api/v3/episodefile?seriesId=…`) and is left untouched by *Rescan Series*. Files are
+never modified; the planned *Audio Track Retag* feature will use that record.
+
+> **Cost:** one ffmpeg extraction and one Whisper call per suspicious track per distinct
+> track layout in a download — a 24-episode pack with identical layouts costs one probe.
+> Set *Verify Tagged Tracks* to *For release groups* with a group list only if you know a
+> group mislabels tracks that *look* right.
+
+> Full reference: [Audio Language Verification](features/audio-language-verification.md).
+
+---
+
 ## Recipe: Fill a partial season from a season pack
 
 **Goal:** grab a full-season pack to fill the episodes you're missing, instead of having
