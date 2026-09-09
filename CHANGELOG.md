@@ -10,7 +10,28 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Audio Language Verification.** Settings → Media Management gains an advanced
+  *Audio Language Verification* section (Enable, Whisper Endpoint, Confidence Threshold
+  `0.85`, Clip Offset `300` s, Clip Length `30` s, Verify Tagged Tracks `Never` / for
+  release groups / `Always`, Timeout `120` s). At import, when an episode's audio-track
+  language tags contradict the language claimed by the release name, folder, download
+  client or grab history, are `und`/missing, or would drop the file below the profile's
+  MinFormatScore through a language custom format, a 30 s clip of each suspicious track is
+  sent to a self-hosted [whisper-asr-webservice](https://github.com/ahmetoner/whisper-asr-webservice)
+  (`POST /detect-language`); a detection at or above the threshold outranks the MediaInfo
+  tags. One probe per distinct track layout per download, so a season pack costs one probe
+  per triggered track, not one per episode. The per-track outcome is stored on
+  `EpisodeFile.AudioLanguageVerification` (migration 218, exposed read-only on
+  `/api/v3/episodefile`) for the planned *Audio Track Retag* feature; rescans and
+  media-info refreshes never re-probe or rewrite it. Files are never modified. A
+  MinFormatScore rejection after a probe now reads "… Audio verified (detected en 0.97,
+  en 0.94)". Any probe failure (endpoint down, timeout, ffmpeg error) logs one warning and
+  the import proceeds exactly as before. Profiles without a language custom format never
+  probe. Replaces the detection half of the external `frtag_rescue.py`. Image: `ffmpeg` is
+  now symlinked into `/app` next to `ffprobe`. Docs:
+  [features/audio-language-verification.md](docs/features/audio-language-verification.md).
 
 ## [v4.0.19.2979+krzw.16] — based on Sonarr 4.0.19.2979
 

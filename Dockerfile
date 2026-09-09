@@ -87,7 +87,8 @@ RUN rm -f /app/ServiceInstall.* /app/ServiceUninstall.* /app/Sonarr.Windows.*
 # FFMpegCore (Sonarr's media-probe wrapper) looks for ffprobe next to the binary
 # before falling back to PATH. Symlink the apt-installed one into /app so behavior
 # matches the upstream release distribution and lscr.io/linuxserver/sonarr's layout.
-RUN ln -sf /usr/bin/ffprobe /app/ffprobe
+RUN ln -sf /usr/bin/ffprobe /app/ffprobe \
+    && ln -sf /usr/bin/ffmpeg /app/ffmpeg
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh /app/Sonarr
