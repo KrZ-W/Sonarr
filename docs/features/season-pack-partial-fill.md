@@ -80,6 +80,12 @@ When **Threshold** is selected, a companion **threshold percentage**
   fine if bandwidth/seeding isn't a concern, wasteful otherwise. `Threshold` is the
   middle ground.
 
+## Upstream
+
+Not an upstream request: Sonarr **v5** ships a "season pack upgrade" setting natively; this
+feature back-ports it to the v4 line and extends it to single-episode searches. No open or
+declined v4 request was found (searched 2026-09-09).
+
 ## Source
 
 Commit: `06fcf377e`. Key files:

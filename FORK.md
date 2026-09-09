@@ -80,6 +80,21 @@ docker pull ghcr.io/krz-w/sonarr:latest
 See [features/docker-deployment.md](docs/features/docker-deployment.md) for a full
 `docker run` / compose example.
 
+## Upstream issues this fork relates to
+
+For people arriving from an upstream issue: the table below maps each fork feature to the
+Sonarr issues it addresses or was declined as. Each feature page has an **Upstream** section
+with details. This fork does not submit changes upstream.
+
+| Upstream issue | State | Fork feature | Relationship |
+|---|---|---|---|
+| [Sonarr#8806](https://github.com/Sonarr/Sonarr/issues/8806) user-added alternate titles for search | closed, not planned (2026-07) | [User Scene Mappings](docs/features/user-scene-mappings.md) | Implemented here |
+| [Sonarr#6233](https://github.com/Sonarr/Sonarr/issues/6233), [#6166](https://github.com/Sonarr/Sonarr/issues/6166), [#8058](https://github.com/Sonarr/Sonarr/issues/8058) custom aliases / alias search control | closed, not planned | [User Scene Mappings](docs/features/user-scene-mappings.md) | Implemented here |
+| [Sonarr#3394](https://github.com/Sonarr/Sonarr/issues/3394), [#6762](https://github.com/Sonarr/Sonarr/issues/6762) language before quality | closed | [Custom Format Priority Mode](docs/features/custom-format-priority-mode.md) | Declined upstream; fork-only by design |
+| [Sonarr#5598](https://github.com/Sonarr/Sonarr/issues/5598) CF comparison release vs file | open, discussion | [VFQ Audio-Title Detection](docs/features/vfq-audio-title-detection.md) | Related discussion |
+| [Sonarr#269](https://github.com/Sonarr/Sonarr/issues/269) TVDB data in other languages | open | [Regional Language Parsing](docs/features/regional-language-parsing.md) | Narrow fix under that umbrella |
+| [Radarr#8444](https://github.com/Radarr/Radarr/issues/8444) deleted-event flood on failed imports | open (Radarr) | [Atomic Upgrade Imports](docs/features/atomic-upgrade-imports.md) | Same flaw existed in Sonarr; fixed here |
+
 ## Relationship to upstream
 
 - The clone has one remote, `origin` → `KrZ-W/Sonarr` (this fork). Upstream

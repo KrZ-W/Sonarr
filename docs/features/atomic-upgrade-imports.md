@@ -93,6 +93,13 @@ frequent (language-first swaps of files that are otherwise fine) — which is ex
 turned upstream's latent ordering flaw into a mass-loss event. Those features decide
 *whether* to upgrade; this one guarantees the swap itself can't destroy anything.
 
+## Upstream
+
+No upstream Sonarr report matches (searched 2026-09-09). The sister Radarr issue is
+[Radarr#8444](https://github.com/Radarr/Radarr/issues/8444) — *Import failures can create
+excessive deleted events* (open, Confirmed); Sonarr has the same delete-before-transfer
+ordering, so the same class of loss applied and is what this feature removes.
+
 ## Source
 
 Commit: `9326bd91d`. Key files:

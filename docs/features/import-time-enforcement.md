@@ -57,6 +57,10 @@ sure your custom formats + `MinFormatScore` actually express the language you wa
 - [VFQ Audio-Title Detection](vfq-audio-title-detection.md)
 - User Guide: [Stop wrong-language files from importing](../user-guide.md#recipe-stop-wrong-language-files-from-importing).
 
+## Upstream
+
+No open or declined upstream Sonarr request matches (searched 2026-09-09).
+
 ## Source
 
 Commit: `17d4dd231`. Key files:

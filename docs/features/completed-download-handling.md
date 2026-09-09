@@ -92,6 +92,11 @@ curl -s -X PUT -H "X-Api-Key: $KEY" -H "Content-Type: application/json" \
 
 It takes effect immediately — no restart needed.
 
+## Upstream
+
+No open or declined upstream Sonarr request matches the configurable interval or the stuck
+`ImportPending` self-heal (searched 2026-09-09).
+
 ## Source
 
 Commits: `e14b4a027` (configurable interval), `a72681500` (run logging),
