@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.17] — based on Sonarr 4.0.19.2979
+
 ### Added
 
 - **Audio Language Verification.** Settings → Media Management gains an advanced
@@ -32,6 +36,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   probe. Replaces the detection half of the external `frtag_rescue.py`. Image: `ffmpeg` is
   now symlinked into `/app` next to `ffprobe`. Docs:
   [features/audio-language-verification.md](docs/features/audio-language-verification.md).
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.17`.
 
 ## [v4.0.19.2979+krzw.16] — based on Sonarr 4.0.19.2979
 
@@ -399,7 +405,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.16...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.17...HEAD
+[v4.0.19.2979+krzw.17]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.17
 [v4.0.19.2979+krzw.16]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.16
 [v4.0.19.2979+krzw.15]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.15
 [v4.0.19.2979+krzw.14]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.14
