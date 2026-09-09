@@ -118,7 +118,7 @@
   "AudioLanguageVerificationEndpoint": "Whisper Endpoint",
   "AudioLanguageVerificationEndpointHelpText": "Base URL of a whisper-asr-webservice instance (the same container Bazarr uses), e.g. http://whisper:9000",
   "AudioLanguageVerificationTimeout": "Timeout",
-  "AudioLanguageVerificationTimeoutHelpText": "Maximum time to wait for the clip extraction and for the detector's answer, per track.",
+  "AudioLanguageVerificationTimeoutHelpText": "Total time budget per probed track: the clip extraction gets at most a third of it, the detector's answer whatever is left.",
   "AudioLanguageVerificationVerifyTagged": "Verify Tagged Tracks",
   "AudioLanguageVerificationVerifyTaggedForReleaseGroups": "For release groups",
   "AudioLanguageVerificationVerifyTaggedGroups": "Verify Tagged Tracks For Groups",
