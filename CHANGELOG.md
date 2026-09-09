@@ -12,6 +12,31 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.18] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Audio Language Verification follow-ups.**
+  - Settings saved through the API were written with the process culture, so in a
+    comma-decimal locale (the image runs with `LANG=fr_FR.UTF-8` and real globalization) the
+    confidence threshold was stored as `0,75`, read back as the `0.85` default and could
+    never be changed. `ConfigService.SaveConfigDictionary` now writes and compares values
+    with `InvariantCulture`; the threshold getter also accepts a value an older build wrote
+    in the current culture. The same path fixes the Season Pack Upgrade threshold.
+  - Failed probes were cached for 12 hours like successes, so a pack imported while Whisper
+    was down was not re-probed on retry. Failures now expire after **15 minutes**.
+  - The augmenter's history lookup ran outside its error handling; the whole augmenter is
+    now guarded, so any exception logs one warning and the import falls through to the
+    existing evidence.
+  - *Timeout* is now a per-track **total**: the clip extraction gets at most a third of it
+    and the detector call whatever is left, so a track can never take longer than the
+    setting (it used to be two separate budgets). UI help text and docs updated.
+  - The clip extractor reads the clip and locates the bundled `ffmpeg` through the disk
+    provider, and its failure paths (ffmpeg missing, non-zero exit, timeout → process
+    killed, temp file always deleted) are unit-tested.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.18`.
+
 ## [v4.0.19.2979+krzw.17] — based on Sonarr 4.0.19.2979
 
 ### Added
@@ -405,7 +430,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.17...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.18...HEAD
+[v4.0.19.2979+krzw.18]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.18
 [v4.0.19.2979+krzw.17]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.17
 [v4.0.19.2979+krzw.16]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.16
 [v4.0.19.2979+krzw.15]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.15
