@@ -17,6 +17,7 @@ using NzbDrone.Core.Profiles;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augmenters.Language
 {
@@ -317,6 +318,22 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
 
             _localEpisode.AudioLanguageTrigger.Should().Be(AudioLanguageTrigger.PositiveVerification);
             result.Languages.Should().Equal(new List<Core.Languages.Language> { Core.Languages.Language.English });
+        }
+
+        [Test]
+        public void should_fall_through_with_one_warning_when_anything_inside_throws()
+        {
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(h => h.FindByDownloadId(It.IsAny<string>()))
+                  .Throws(new InvalidOperationException("db gone"));
+
+            AugmentLanguageResult result = null;
+            Action act = () => result = Subject.AugmentLanguage(_localEpisode, _downloadClientItem);
+
+            act.Should().NotThrow();
+            result.Should().BeNull();
+            VerifyProbeCount(0);
+            ExceptionVerification.ExpectedWarns(1);
         }
     }
 }

@@ -330,6 +330,14 @@ namespace NzbDrone.Common.Disk
             return File.ReadAllText(filePath);
         }
 
+        // krzw(audio-language-verification)
+        public byte[] ReadAllBytes(string filePath)
+        {
+            Ensure.That(filePath, () => filePath).IsValidPath(PathValidationType.CurrentOs);
+
+            return File.ReadAllBytes(filePath);
+        }
+
         public void WriteAllText(string filename, string contents)
         {
             Ensure.That(filename, () => filename).IsValidPath(PathValidationType.CurrentOs);
