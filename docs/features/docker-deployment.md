@@ -27,7 +27,7 @@ file and keep the same env/volumes.
 
 | Tag | Points at | Use for |
 |---|---|---|
-| `4.0.19.2979-krzw.16` | a tagged release (immutable) | **production — pin to this** |
+| `4.0.19.2979-krzw.17` | a tagged release (immutable) | **production — pin to this** |
 | `latest` | tip of `personal/all-features-main` | bleeding edge |
 | `personal-all-features-main` | same branch (ref tag) | bleeding edge |
 | `sha-<short>` | a specific commit | debugging / rollback |
@@ -46,7 +46,7 @@ docker run -d --name sonarr \
   -v /path/to/config:/config \
   -v /path/to/tv:/tv \
   -v /path/to/downloads:/downloads \
-  ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.16
+  ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.17
 ```
 
 ### docker-compose
@@ -54,7 +54,7 @@ docker run -d --name sonarr \
 ```yaml
 services:
   sonarr:
-    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.16
+    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.17
     container_name: sonarr
     environment:
       - PUID=1000
