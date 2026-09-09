@@ -97,6 +97,10 @@ namespace NzbDrone.Core.Test.Configuration
                 {
                     value = 0;
                 }
+                else if (propertyInfo.PropertyType == typeof(double))
+                {
+                    value = (double)DateTime.Now.Millisecond;
+                }
 
                 propertyInfo.GetSetMethod().Invoke(configProvider, new[] { value });
                 var returnValue = propertyInfo.GetGetMethod().Invoke(configProvider, null);

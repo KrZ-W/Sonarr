@@ -187,5 +187,42 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators
 
             Subject.Aggregate(_localEpisode, null).Languages.Should().Contain(_localEpisode.FileEpisodeInfo.Languages);
         }
+
+        // krzw(audio-language-verification)
+        [Test]
+        public void should_prefer_audio_probe_over_media_info_regardless_of_registration_order()
+        {
+            var audioProbeAugmenter = new Mock<IAugmentLanguage>();
+            audioProbeAugmenter.SetupGet(s => s.Order).Returns(5);
+            audioProbeAugmenter.Setup(s => s.AugmentLanguage(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                   .Returns(new AugmentLanguageResult(new List<Language> { Language.French }, Confidence.AudioProbe));
+
+            var mediaInfoAugmenter = new Mock<IAugmentLanguage>();
+            mediaInfoAugmenter.SetupGet(s => s.Order).Returns(4);
+            mediaInfoAugmenter.Setup(s => s.AugmentLanguage(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                   .Returns(new AugmentLanguageResult(new List<Language> { Language.English }, Confidence.MediaInfo));
+
+            Mocker.SetConstant<IEnumerable<IAugmentLanguage>>(new List<IAugmentLanguage> { audioProbeAugmenter.Object, mediaInfoAugmenter.Object });
+
+            Subject.Aggregate(_localEpisode, null).Languages.Should().Equal(new List<Language> { Language.French });
+        }
+
+        [Test]
+        public void should_keep_media_info_when_audio_probe_falls_through()
+        {
+            var audioProbeAugmenter = new Mock<IAugmentLanguage>();
+            audioProbeAugmenter.SetupGet(s => s.Order).Returns(5);
+            audioProbeAugmenter.Setup(s => s.AugmentLanguage(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                   .Returns((AugmentLanguageResult)null);
+
+            var mediaInfoAugmenter = new Mock<IAugmentLanguage>();
+            mediaInfoAugmenter.SetupGet(s => s.Order).Returns(4);
+            mediaInfoAugmenter.Setup(s => s.AugmentLanguage(It.IsAny<LocalEpisode>(), It.IsAny<DownloadClientItem>()))
+                   .Returns(new AugmentLanguageResult(new List<Language> { Language.English }, Confidence.MediaInfo));
+
+            Mocker.SetConstant<IEnumerable<IAugmentLanguage>>(new List<IAugmentLanguage> { audioProbeAugmenter.Object, mediaInfoAugmenter.Object });
+
+            Subject.Aggregate(_localEpisode, null).Languages.Should().Equal(new List<Language> { Language.English });
+        }
     }
 }

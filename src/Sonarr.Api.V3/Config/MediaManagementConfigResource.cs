@@ -1,5 +1,6 @@
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Qualities;
 using Sonarr.Http.REST;
@@ -34,6 +35,16 @@ namespace Sonarr.Api.V3.Config
         // krzw(season-pack)
         public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         public double SeasonPackUpgradeThreshold { get; set; }
+
+        // krzw(audio-language-verification)
+        public bool AudioLanguageVerificationEnabled { get; set; }
+        public string AudioLanguageVerificationEndpoint { get; set; }
+        public double AudioLanguageVerificationConfidenceThreshold { get; set; }
+        public int AudioLanguageVerificationClipOffset { get; set; }
+        public int AudioLanguageVerificationClipLength { get; set; }
+        public AudioLanguageVerifyTaggedMode AudioLanguageVerificationVerifyTagged { get; set; }
+        public string AudioLanguageVerificationVerifyTaggedGroups { get; set; }
+        public int AudioLanguageVerificationTimeout { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -67,7 +78,17 @@ namespace Sonarr.Api.V3.Config
 
                 // krzw(season-pack)
                 SeasonPackUpgrade = model.SeasonPackUpgrade,
-                SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold
+                SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
+
+                // krzw(audio-language-verification)
+                AudioLanguageVerificationEnabled = model.AudioLanguageVerificationEnabled,
+                AudioLanguageVerificationEndpoint = model.AudioLanguageVerificationEndpoint,
+                AudioLanguageVerificationConfidenceThreshold = model.AudioLanguageVerificationConfidenceThreshold,
+                AudioLanguageVerificationClipOffset = model.AudioLanguageVerificationClipOffset,
+                AudioLanguageVerificationClipLength = model.AudioLanguageVerificationClipLength,
+                AudioLanguageVerificationVerifyTagged = model.AudioLanguageVerificationVerifyTagged,
+                AudioLanguageVerificationVerifyTaggedGroups = model.AudioLanguageVerificationVerifyTaggedGroups,
+                AudioLanguageVerificationTimeout = model.AudioLanguageVerificationTimeout
             };
         }
     }

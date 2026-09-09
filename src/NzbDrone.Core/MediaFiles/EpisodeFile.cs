@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Languages;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -29,6 +30,7 @@ namespace NzbDrone.Core.MediaFiles
         public LazyLoaded<Series> Series { get; set; }
         public List<Language> Languages { get; set; }
         public ReleaseType ReleaseType { get; set; }
+        public List<AudioLanguageVerification> AudioLanguageVerification { get; set; }  // krzw(audio-language-verification): written at import only
 
         public override string ToString()
         {

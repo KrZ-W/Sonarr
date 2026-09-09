@@ -6,6 +6,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
         Filename,
         Foldername,
         DownloadClientItem,
-        MediaInfo
+        MediaInfo,
+        AudioProbe  // krzw(audio-language-verification): detector result outranks the tags
     }
 }
