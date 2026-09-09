@@ -55,11 +55,11 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioLanguage
 
             sent.Url.FullUri.Should().Be("http://whisper:9000/detect-language");
             sent.Method.Should().Be(System.Net.Http.HttpMethod.Post);
-            sent.RequestTimeout.Should().Be(TimeSpan.FromSeconds(120));
+            sent.RequestTimeout.Should().BeGreaterThan(TimeSpan.FromSeconds(100)).And.BeLessThanOrEqualTo(TimeSpan.FromSeconds(120), "the detector gets what is left of the per-track budget");
             sent.Headers.ContentType.Should().StartWith("multipart/form-data");
 
             Mocker.GetMock<IAudioClipExtractor>()
-                  .Verify(e => e.Extract(Path, 1, TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(120)), Times.Once());
+                  .Verify(e => e.Extract(Path, 1, TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(40)), Times.Once());
         }
 
         [Test]
@@ -162,6 +162,47 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioLanguage
 
             WhisperAsrAudioLanguageProbe.ClipOffset(TimeSpan.FromSeconds(offsetSeconds), TimeSpan.FromSeconds(lengthSeconds), runtime)
                 .Should().Be(TimeSpan.FromSeconds(expectedSeconds));
+        }
+
+        [Test]
+        public void extraction_should_get_a_third_of_the_budget_and_the_detector_the_rest()
+        {
+            WhisperAsrAudioLanguageProbe.ExtractionTimeout(TimeSpan.FromSeconds(120)).Should().Be(TimeSpan.FromSeconds(40));
+            WhisperAsrAudioLanguageProbe.DetectorTimeout(TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(7)).Should().Be(TimeSpan.FromSeconds(113));
+            WhisperAsrAudioLanguageProbe.DetectorTimeout(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3)).Should().Be(TimeSpan.Zero);
+        }
+
+        [Test]
+        public void should_give_up_with_one_warning_when_the_extraction_used_the_whole_budget()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.AudioLanguageVerificationTimeout).Returns(1);
+            Mocker.GetMock<IAudioClipExtractor>()
+                  .Setup(e => e.Extract(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>()))
+                  .Returns(() =>
+                  {
+                      System.Threading.Thread.Sleep(1100);
+                      return new byte[] { 1 };
+                  });
+            GivenReply("{\"language_code\":\"fr\",\"confidence\":0.9}");
+
+            Subject.Probe(Path, 0, null).Should().BeNull();
+
+            Mocker.GetMock<IHttpClient>().Verify(c => c.Post(It.IsAny<HttpRequest>()), Times.Never());
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_extract_first_and_return_null_with_one_warning_when_the_detector_call_throws()
+        {
+            Mocker.GetMock<IHttpClient>()
+                  .Setup(c => c.Post(It.IsAny<HttpRequest>()))
+                  .Throws(new WebException("connection reset"));
+
+            Subject.Probe(Path, 2, null).Should().BeNull();
+
+            Mocker.GetMock<IAudioClipExtractor>()
+                  .Verify(e => e.Extract(Path, 2, It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>(), It.IsAny<TimeSpan>()), Times.Once());
+            ExceptionVerification.ExpectedWarns(1);
         }
     }
 }
