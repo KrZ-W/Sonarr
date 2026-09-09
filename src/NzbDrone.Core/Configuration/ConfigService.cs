@@ -9,6 +9,7 @@ using NzbDrone.Core.Configuration.Events;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Qualities;
@@ -258,6 +259,71 @@ namespace NzbDrone.Core.Configuration
             get { return GetValueBoolean("EnableMediaInfo", true); }
 
             set { SetValue("EnableMediaInfo", value); }
+        }
+
+        // krzw(audio-language-verification): settings
+        public bool AudioLanguageVerificationEnabled
+        {
+            get { return GetValueBoolean("AudioLanguageVerificationEnabled", false); }
+
+            set { SetValue("AudioLanguageVerificationEnabled", value); }
+        }
+
+        public string AudioLanguageVerificationEndpoint
+        {
+            get { return GetValue("AudioLanguageVerificationEndpoint", string.Empty); }
+
+            set { SetValue("AudioLanguageVerificationEndpoint", value ?? string.Empty); }
+        }
+
+        public double AudioLanguageVerificationConfidenceThreshold
+        {
+            get
+            {
+                var raw = GetValue("AudioLanguageVerificationConfidenceThreshold", "0.85");
+
+                return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : 0.85;
+            }
+
+            set
+            {
+                SetValue("AudioLanguageVerificationConfidenceThreshold", value.ToString("0.###", CultureInfo.InvariantCulture));
+            }
+        }
+
+        public int AudioLanguageVerificationClipOffset
+        {
+            get { return GetValueInt("AudioLanguageVerificationClipOffset", 300); }
+
+            set { SetValue("AudioLanguageVerificationClipOffset", value); }
+        }
+
+        public int AudioLanguageVerificationClipLength
+        {
+            get { return GetValueInt("AudioLanguageVerificationClipLength", 30); }
+
+            set { SetValue("AudioLanguageVerificationClipLength", value); }
+        }
+
+        public AudioLanguageVerifyTaggedMode AudioLanguageVerificationVerifyTagged
+        {
+            get { return GetValueEnum("AudioLanguageVerificationVerifyTagged", AudioLanguageVerifyTaggedMode.Never); }
+
+            set { SetValue("AudioLanguageVerificationVerifyTagged", value); }
+        }
+
+        public string AudioLanguageVerificationVerifyTaggedGroups
+        {
+            get { return GetValue("AudioLanguageVerificationVerifyTaggedGroups", string.Empty); }
+
+            set { SetValue("AudioLanguageVerificationVerifyTaggedGroups", value ?? string.Empty); }
+        }
+
+        public int AudioLanguageVerificationTimeout
+        {
+            get { return GetValueInt("AudioLanguageVerificationTimeout", 120); }
+
+            set { SetValue("AudioLanguageVerificationTimeout", value); }
         }
 
         public bool UseScriptImport

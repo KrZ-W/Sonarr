@@ -40,6 +40,13 @@ namespace Sonarr.Api.V3.Config
 
             // krzw(season-pack): a percentage; above 100 could never accept, below 0 always would
             SharedValidator.RuleFor(c => c.SeasonPackUpgradeThreshold).InclusiveBetween(0.0, 100.0);
+
+            // krzw(audio-language-verification)
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationEndpoint).IsValidUrl().When(c => c.AudioLanguageVerificationEnabled);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationConfidenceThreshold).InclusiveBetween(0, 1);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationClipOffset).GreaterThanOrEqualTo(0);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationClipLength).InclusiveBetween(1, 600);
+            SharedValidator.RuleFor(c => c.AudioLanguageVerificationTimeout).InclusiveBetween(1, 3600);
         }
 
         protected override MediaManagementConfigResource ToResource(IConfigService model)

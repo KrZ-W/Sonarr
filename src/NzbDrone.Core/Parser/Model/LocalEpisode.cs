@@ -5,6 +5,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
@@ -48,6 +49,10 @@ namespace NzbDrone.Core.Parser.Model
         public bool ShouldImportExtras { get; set; }
         public List<string> PossibleExtraFiles { get; set; }
         public SubtitleTitleInfo SubtitleInfo { get; set; }
+
+        // krzw(audio-language-verification): per-track probe outcome and why it ran; carried to EpisodeFile at import
+        public List<AudioLanguageVerification> AudioLanguageVerification { get; set; }
+        public AudioLanguageTrigger AudioLanguageTrigger { get; set; }
 
         public int SeasonNumber
         {
