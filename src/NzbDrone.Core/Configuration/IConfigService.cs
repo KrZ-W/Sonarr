@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NzbDrone.Common.Http.Proxy;
 using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Security;
@@ -35,6 +36,16 @@ namespace NzbDrone.Core.Configuration
         int MinimumFreeSpaceWhenImporting { get; set; }
         bool CopyUsingHardlinks { get; set; }
         bool EnableMediaInfo { get; set; }
+
+        // krzw(audio-language-verification)
+        bool AudioLanguageVerificationEnabled { get; set; }
+        string AudioLanguageVerificationEndpoint { get; set; }
+        double AudioLanguageVerificationConfidenceThreshold { get; set; }
+        int AudioLanguageVerificationClipOffset { get; set; }
+        int AudioLanguageVerificationClipLength { get; set; }
+        AudioLanguageVerifyTaggedMode AudioLanguageVerificationVerifyTagged { get; set; }
+        string AudioLanguageVerificationVerifyTaggedGroups { get; set; }
+        int AudioLanguageVerificationTimeout { get; set; }
         bool UseScriptImport { get; set; }
         string ScriptImportPath { get; set; }
         bool ImportExtraFiles { get; set; }
