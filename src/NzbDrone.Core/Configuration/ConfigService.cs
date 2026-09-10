@@ -307,6 +307,13 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AudioTrackRetagHardlinkMode", value); }
         }
 
+        public AudioTrackRetagNonMkvMode AudioTrackRetagNonMkvMode
+        {
+            get { return GetValueEnum("AudioTrackRetagNonMkvMode", AudioTrackRetagNonMkvMode.Skip); }
+
+            set { SetValue("AudioTrackRetagNonMkvMode", value); }
+        }
+
         public bool UseScriptImport
         {
             get { return GetValueBoolean("UseScriptImport", false); }

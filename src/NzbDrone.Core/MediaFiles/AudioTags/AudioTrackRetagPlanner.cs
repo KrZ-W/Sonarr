@@ -20,14 +20,21 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
     {
         public const string MkvExtension = ".mkv";
 
-        public static AudioTrackRetagPlan Plan(EpisodeFile episodeFile, string path, double confidenceThreshold)
+        /// <summary>
+        /// Plans the edits for one file. With <paramref name="remuxNonMkv"/> a non-Matroska file is planned
+        /// like an MKV and the plan is flagged <see cref="AudioTrackRetagPlan.Remux"/>; without it (the
+        /// default, "Non-MKV files" = Skip) it is skipped with <see cref="AudioTrackRetagSkipReason.NotMkv"/>.
+        /// </summary>
+        public static AudioTrackRetagPlan Plan(EpisodeFile episodeFile, string path, double confidenceThreshold, bool remuxNonMkv = false)
         {
             if (episodeFile.AudioTrackRetag?.IsDone == true)
             {
                 return AudioTrackRetagPlan.Skip(AudioTrackRetagSkipReason.AlreadyDone);
             }
 
-            if (!IsMkv(path))
+            var remux = !IsMkv(path);
+
+            if (remux && !remuxNonMkv)
             {
                 return AudioTrackRetagPlan.Skip(AudioTrackRetagSkipReason.NotMkv);
             }
@@ -39,7 +46,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 return AudioTrackRetagPlan.Skip(AudioTrackRetagSkipReason.NoVerificationRecord);
             }
 
-            var plan = new AudioTrackRetagPlan();
+            var plan = new AudioTrackRetagPlan { Remux = remux };
 
             foreach (var track in verification.OrderBy(t => t.StreamIndex))
             {

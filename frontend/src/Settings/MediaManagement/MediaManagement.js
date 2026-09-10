@@ -144,6 +144,21 @@ const audioTrackRetagHardlinkModeOptions = [
   }
 ];
 
+const audioTrackRetagNonMkvModeOptions = [
+  {
+    key: 'skip',
+    get value() {
+      return translate('AudioTrackRetagNonMkvModeSkip');
+    }
+  },
+  {
+    key: 'remuxToMkv',
+    get value() {
+      return translate('AudioTrackRetagNonMkvModeRemuxToMkv');
+    }
+  }
+];
+
 class MediaManagement extends Component {
 
   //
@@ -665,6 +680,22 @@ class MediaManagement extends Component {
                           values={audioTrackRetagHardlinkModeOptions}
                           onChange={onInputChange}
                           {...settings.audioTrackRetagHardlinkMode}
+                        />
+                      </FormGroup>
+
+                      <FormGroup
+                        advancedSettings={advancedSettings}
+                        isAdvanced={true}
+                      >
+                        <FormLabel>{translate('AudioTrackRetagNonMkvMode')}</FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.SELECT}
+                          name="audioTrackRetagNonMkvMode"
+                          helpText={translate('AudioTrackRetagNonMkvModeHelpText')}
+                          values={audioTrackRetagNonMkvModeOptions}
+                          onChange={onInputChange}
+                          {...settings.audioTrackRetagNonMkvMode}
                         />
                       </FormGroup>
                     </FieldSet> : null
