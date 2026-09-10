@@ -82,8 +82,10 @@ import is reported complete the file and its record agree.
 For each mismatched track the detected ISO 639-1 code is mapped through Sonarr's language
 model to its ISO 639-2 code in the **bibliographic** form Matroska uses (`fr` → French →
 `fre`, `de` → `ger`, `nl` → `dut`, `en` → `eng`). The terminology→bibliographic table is
-explicit in the planner (the 20 standard B/T pairs) rather than derived from the file-naming
-map, which has several bibliographic keys per language and no defined order. A track whose detected language Sonarr does not
+explicit in the planner rather than derived from the file-naming map, which has several
+bibliographic keys per language and no defined order. ISO 639-2 defines exactly 20 languages
+with a separate bibliographic code, so the table is the complete standard, not a sample; a test
+cross-checks it against the file-naming map. A track whose detected language Sonarr does not
 know, or whose language has no ISO 639-2 code, is skipped and listed in
 `AudioTrackRetag.skippedTracks` with the reason. Track numbers are translated from the
 record's audio-relative 0-based index (`ffmpeg 0:a:N`) to `mkvpropedit`'s 1-based
@@ -105,7 +107,10 @@ tags: it starts from the languages the import stored, every rewritten track now 
 detected language, a rewritten track's old tag language is dropped only when no track still
 carries it, `Unknown` is never added (an `und` track stays out of the list), and a track that
 could not be written (no ISO 639-2 code) keeps the language the import decided — the record
-says why it was not written. In the common case `Languages` after the retag equals `Languages`
+says why it was not written. The record only covers the tracks the trigger probed (the *Unknown*
+trigger probes just the `und` tracks, *positive verification* just the expected-language ones),
+so streams absent from it count as their post-edit tag language: an unprobed English track
+keeps English in the list. In the common case `Languages` after the retag equals `Languages`
 after the import. The verification record itself is kept.
 
 ### Hardlinked files

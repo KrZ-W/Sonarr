@@ -7,6 +7,7 @@ using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.AudioTags;
+using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 
@@ -245,7 +246,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
             var stored = new List<Language> { Language.French };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold, null).Should().Equal(Language.French);
         }
 
         [Test]
@@ -254,7 +255,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
             var stored = new List<Language> { Language.English };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold, null).Should().Equal(Language.French);
         }
 
         [Test]
@@ -263,7 +264,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             var verification = new List<AudioLanguageVerification> { Track(0, "eng", "en"), Track(1, "eng", "fr") };
             var stored = new List<Language> { Language.English, Language.French };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold).Should().Equal(Language.English, Language.French);
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold, null).Should().Equal(Language.English, Language.French);
         }
 
         [Test]
@@ -272,7 +273,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             var verification = new List<AudioLanguageVerification> { Track(0, "und", null, 0), Track(1, "eng", "fr") };
             var stored = new List<Language> { Language.French };
 
-            var result = AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold);
+            var result = AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold, null);
 
             result.Should().Equal(Language.French);
             result.Should().NotContain(Language.Unknown);
@@ -285,7 +286,56 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr"), Track(1, "eng", "xx") };
             var stored = new List<Language> { Language.French, Language.English };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French, Language.English);
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold, null).Should().Equal(Language.French, Language.English);
+        }
+
+        [Test]
+        public void reconcile_should_keep_the_tag_language_of_a_track_the_record_does_not_cover()
+        {
+            // only the und track was probed (Unknown trigger); the English track next to it is unrecorded
+            var verification = new List<AudioLanguageVerification> { Track(1, "und", "fr") };
+            var stored = new List<Language> { Language.English, Language.French };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "und", "fre")), verification, Threshold, new[] { "eng", "fre" }).Should().Equal(Language.English, Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_not_drop_an_old_tag_language_an_unrecorded_track_still_carries()
+        {
+            // track 0 (English, unprobed) and track 1 (tagged eng, really French, rewritten)
+            var verification = new List<AudioLanguageVerification> { Track(1, "eng", "fr") };
+            var stored = new List<Language> { Language.English };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold, new[] { "eng", "fre" }).Should().Equal(Language.English, Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_drop_an_old_tag_language_no_track_carries_any_more()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
+            var stored = new List<Language> { Language.English };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold, new[] { "fre" }).Should().Equal(Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_not_add_unknown_for_an_unrecorded_untagged_track()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(1, "eng", "fr") };
+            var stored = new List<Language> { Language.French };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold, new[] { null, "fre" }).Should().Equal(Language.French);
+        }
+
+        [Test]
+        public void bibliographic_table_should_cover_every_terminology_code_the_naming_map_knows()
+        {
+            // the standard has exactly 20 B/T pairs; FileNameBuilder.Iso639BTMap also carries
+            // non-standard extras (gsw, khk, mvf) that map onto a standard T code
+            var terminologyCodes = FileNameBuilder.Iso639BTMap.Values.Distinct().ToList();
+
+            terminologyCodes.Should().OnlyContain(t => AudioTrackRetagPlanner.MatroskaBibliographicCodes.ContainsKey(t) || t == "mon");
+            AudioTrackRetagPlanner.MatroskaBibliographicCodes.Keys.Should().OnlyContain(t => terminologyCodes.Contains(t));
         }
 
         [Test]
@@ -293,7 +343,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
         {
             var stored = new List<Language> { Language.French };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten(), null, Threshold).Should().Equal(Language.French);
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten(), null, Threshold, null).Should().Equal(Language.French);
         }
 
         [Test]
@@ -301,7 +351,7 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
         {
             var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
 
-            AudioTrackRetagPlanner.ReconcileLanguages(null, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
+            AudioTrackRetagPlanner.ReconcileLanguages(null, Rewritten((0, "eng", "fre")), verification, Threshold, null).Should().Equal(Language.French);
         }
     }
 }
