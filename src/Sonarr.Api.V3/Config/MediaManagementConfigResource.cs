@@ -1,6 +1,7 @@
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
+using NzbDrone.Core.MediaFiles.AudioTags;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.Qualities;
 using Sonarr.Http.REST;
@@ -45,6 +46,10 @@ namespace Sonarr.Api.V3.Config
         public AudioLanguageVerifyTaggedMode AudioLanguageVerificationVerifyTagged { get; set; }
         public string AudioLanguageVerificationVerifyTaggedGroups { get; set; }
         public int AudioLanguageVerificationTimeout { get; set; }
+
+        // krzw(audio-track-retag)
+        public bool AudioTrackRetagEnabled { get; set; }
+        public AudioTrackRetagHardlinkMode AudioTrackRetagHardlinkMode { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -88,7 +93,11 @@ namespace Sonarr.Api.V3.Config
                 AudioLanguageVerificationClipLength = model.AudioLanguageVerificationClipLength,
                 AudioLanguageVerificationVerifyTagged = model.AudioLanguageVerificationVerifyTagged,
                 AudioLanguageVerificationVerifyTaggedGroups = model.AudioLanguageVerificationVerifyTaggedGroups,
-                AudioLanguageVerificationTimeout = model.AudioLanguageVerificationTimeout
+                AudioLanguageVerificationTimeout = model.AudioLanguageVerificationTimeout,
+
+                // krzw(audio-track-retag)
+                AudioTrackRetagEnabled = model.AudioTrackRetagEnabled,
+                AudioTrackRetagHardlinkMode = model.AudioTrackRetagHardlinkMode
             };
         }
     }
