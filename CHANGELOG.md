@@ -12,6 +12,20 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.21] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Audio Track Retag: languages of unprobed tracks.** The verification record only covers the
+  tracks the trigger probed (*Unknown* probes just the `und` tracks, *positive verification*
+  just the expected-language ones). The post-retag reconciliation of `EpisodeFile.Languages` now
+  counts every stream the record does not cover as its post-edit tag language, so an unprobed
+  English track next to a rewritten one keeps English in the list. A test cross-checks the
+  20-pair ISO 639-2 bibliographic table (the complete set the standard defines) against the
+  file-naming map.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.21`.
+
 ## [v4.0.19.2979+krzw.20] — based on Sonarr 4.0.19.2979
 
 ### Fixed
@@ -494,7 +508,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.20...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.21...HEAD
+[v4.0.19.2979+krzw.21]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.21
 [v4.0.19.2979+krzw.20]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.20
 [v4.0.19.2979+krzw.19]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.19
 [v4.0.19.2979+krzw.18]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.18
