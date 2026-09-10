@@ -76,6 +76,9 @@ services:
   The image installs `ffmpeg` and symlinks ffprobe to `/app/ffprobe` so `FFMpegCore`
   finds it locally; `jq` is included for LSIO-style script compatibility. Without this,
   imports fail with *"Cannot determinate if file is a sample"*.
+- **mkvpropedit is bundled** (for [Audio Track Retag](audio-track-retag.md)): the `mkvtoolnix`
+  package is installed, only `/usr/bin/mkvpropedit` is kept (`mkvmerge`/`mkvextract`/`mkvinfo`
+  are removed) and it is symlinked to `/app/mkvpropedit`, resolved the same way `ffmpeg` is.
 - **PUID/PGID can reuse existing IDs.** The entrypoint runs `groupadd -o` / `useradd -o`,
   so a `PGID=100` (a common Proxmox/LXC default that collides with Debian's `users`
   group) no longer crashes container start.

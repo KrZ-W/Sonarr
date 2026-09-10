@@ -10,6 +10,27 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+### Added
+
+- **Audio Track Retag.** The follow-up to Audio Language Verification, ported from the Radarr
+  fork: after a successful import of a new download, the MKV audio tracks whose verified
+  language differs from their tag (detection at or above the verification threshold) get a
+  header-only `mkvpropedit --edit track:aN --set language=<ISO 639-2>` edit, so
+  Plex/Jellyfin/Bazarr read the right language; the file is re-probed and
+  `MediaInfo`/`Languages` updated. Every episode of a season pack is decided on its own record.
+  Two advanced settings under *Audio Language Verification*: **Retag Audio Tracks** (default
+  off) and **Hardlinked Files** = *Skip* (default) / *Copy then retag* (temp copy in the same
+  folder, free-space check, retag the copy, atomic rename; the seed keeps its bytes) / *Retag
+  in place* (a seeding torrent will fail hash checks). Outcome persisted as
+  `EpisodeFile.AudioTrackRetag` (migration 219: `{mode, result:
+  done|skipped-hardlinked|skipped-container|failed, tracks, skippedTracks, at, error}`),
+  `done` is final; never on rescan/refresh/media-info update; non-MKV files untouched. Manual
+  per-file command `RetagAudioTracks {episodeFileId}`, no library-wide task. `mkvpropedit`
+  bundled in the image (only that MKVToolNix binary is kept) and resolved like `ffmpeg`. New
+  `IDiskProvider.GetHardLinkCount` (Linux `stat`), import transfer mode recorded on
+  `LocalEpisode` as the fallback hardlink hint. Docs:
+  [features/audio-track-retag.md](docs/features/audio-track-retag.md).
+
 ### Changed
 
 - Docs: the Audio Language Verification page and the FORK.md issue index now cross-reference
