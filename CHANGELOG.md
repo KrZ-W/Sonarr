@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.19] — based on Sonarr 4.0.19.2979
+
 ### Added
 
 - **Audio Track Retag.** The follow-up to Audio Language Verification, ported from the Radarr
@@ -37,6 +41,8 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   upstream [Sonarr#8453](https://github.com/Sonarr/Sonarr/issues/8453),
   [Sonarr#7523](https://github.com/Sonarr/Sonarr/issues/7523), [Sonarr#5225](https://github.com/Sonarr/Sonarr/issues/5225)
   and [Radarr#11385](https://github.com/Radarr/Radarr/issues/11385). Docs only.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.19`.
 
 ## [v4.0.19.2979+krzw.18] — based on Sonarr 4.0.19.2979
 
@@ -456,7 +462,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.18...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.19...HEAD
+[v4.0.19.2979+krzw.19]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.19
 [v4.0.19.2979+krzw.18]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.18
 [v4.0.19.2979+krzw.17]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.17
 [v4.0.19.2979+krzw.16]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.16
