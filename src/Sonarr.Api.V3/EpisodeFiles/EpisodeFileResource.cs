@@ -6,6 +6,7 @@ using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
+using NzbDrone.Core.MediaFiles.AudioTags;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
 using Sonarr.Api.V3.CustomFormats;
@@ -31,6 +32,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
         public ReleaseType? ReleaseType { get; set; }
         public MediaInfoResource MediaInfo { get; set; }
         public List<AudioLanguageVerification> AudioLanguageVerification { get; set; }  // krzw(audio-language-verification): read-only
+        public AudioTrackRetag AudioTrackRetag { get; set; }  // krzw(audio-track-retag): read-only
 
         public bool QualityCutoffNotMet { get; set; }
     }
@@ -64,6 +66,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
                 Quality = model.Quality,
                 MediaInfo = model.MediaInfo.ToResource(model.SceneName),
                 AudioLanguageVerification = model.AudioLanguageVerification,  // krzw(audio-language-verification)
+                AudioTrackRetag = model.AudioTrackRetag,  // krzw(audio-track-retag)
                 QualityCutoffNotMet = upgradableSpecification.QualityCutoffNotMet(series.QualityProfile.Value, model.Quality),
                 CustomFormats = customFormats.ToResource(false),
                 CustomFormatScore = customFormatScore,

@@ -14,13 +14,12 @@ import-time MinFormatScore check, and the rejection reason now says the audio wa
 **verified**, not merely tagged.
 
 The per-track outcome (stream index, tag, detected language, confidence, source, time) is
-stored on the episode file as `AudioLanguageVerification` so a later feature can rewrite
-the tags. **This feature never modifies files.** Season packs are the main case here: all
+stored on the episode file as `AudioLanguageVerification`; the [Audio Track Retag](audio-track-retag.md)
+feature consumes it to rewrite the tags after import. **This feature itself never modifies files.** Season packs are the main case here: all
 episodes of a pack that share a track layout reuse one probe.
 
 This replaces the detection half of the external `frtag_rescue.py` script (queue scan →
-ffprobe → Whisper per track layout). The retag/re-import half stays a follow-up
-(*Audio Track Retag*, not implemented).
+ffprobe → Whisper per track layout). The retag half is [Audio Track Retag](audio-track-retag.md).
 
 ## Why it exists
 
@@ -168,11 +167,9 @@ at grab time, at rescan, or for libraries whose profiles do not care about langu
 
 ## Not covered / follow-up
 
-- **Audio Track Retag** (planned, separate feature): post-import `mkvpropedit` rewrite of
-  the track language tags from `AudioLanguageVerification`, with a setting
-  *Never / Only when the import was a copy / Always* (default *Only when copied*). The stored
-  record already carries everything it needs (audio-relative stream index, detected
-  language, confidence).
+- **Audio Track Retag** is the separate feature that rewrites the track language tags from
+  this record after import (`mkvpropedit`, header-only, with hardlink-aware modes); see
+  [audio-track-retag.md](audio-track-retag.md). Since `v4.0.19.2979+krzw.19`.
 - Grab-time decisions, custom-format calculation and the [Audio Title](vfq-audio-title-detection.md)
   condition are untouched.
 
@@ -193,8 +190,8 @@ State as of 2026-09-10:
   filed, 2026-03). Asks for exactly this: tracks tagged `und`/`eng` regardless of content,
   detected by an external provider such as Whisper and used for custom-format scoring.
   Maintainers pointed to *Import Using Script* / a post-import custom script calling
-  ffmpeg+whisper. **Implemented natively here** for the detection half (tags are never
-  rewritten; that is the planned *Audio Track Retag* follow-up).
+  ffmpeg+whisper. **Implemented natively here** for the detection half; the tags are
+  rewritten by [Audio Track Retag](audio-track-retag.md).
 - [Radarr#11385](https://github.com/Radarr/Radarr/issues/11385) — the same request on
   Radarr (open, Needs Triage). Fixed in the Radarr fork, where the verified languages also
   feed the profile Language check.
