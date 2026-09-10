@@ -307,6 +307,12 @@ namespace NzbDrone.Common.Disk
 
         public abstract bool TryCreateHardLink(string source, string destination);
 
+        // krzw(audio-track-retag): number of directory entries sharing the file's bytes; 0 = unknown on this platform
+        public virtual long GetHardLinkCount(string path)
+        {
+            return 0;
+        }
+
         public virtual bool TryCreateRefLink(string source, string destination)
         {
             return false;

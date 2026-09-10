@@ -38,6 +38,7 @@ namespace NzbDrone.Common.Disk
         void DeleteFolder(string path, bool recursive);
         string ReadAllText(string filePath);
         byte[] ReadAllBytes(string filePath);  // krzw(audio-language-verification)
+        long GetHardLinkCount(string path);  // krzw(audio-track-retag): 0 when the platform cannot tell
         void WriteAllText(string filename, string contents);
         void FolderSetLastWriteTime(string path, DateTime dateTime);
         void FileSetLastWriteTime(string path, DateTime dateTime);
