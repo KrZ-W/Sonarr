@@ -81,7 +81,9 @@ import is reported complete the file and its record agree.
 
 For each mismatched track the detected ISO 639-1 code is mapped through Sonarr's language
 model to its ISO 639-2 code in the **bibliographic** form Matroska uses (`fr` → French →
-`fre`, `de` → `ger`, `nl` → `dut`, `en` → `eng`). A track whose detected language Sonarr does not
+`fre`, `de` → `ger`, `nl` → `dut`, `en` → `eng`). The terminology→bibliographic table is
+explicit in the planner (the 20 standard B/T pairs) rather than derived from the file-naming
+map, which has several bibliographic keys per language and no defined order. A track whose detected language Sonarr does not
 know, or whose language has no ISO 639-2 code, is skipped and listed in
 `AudioTrackRetag.skippedTracks` with the reason. Track numbers are translated from the
 record's audio-relative 0-based index (`ffmpeg 0:a:N`) to `mkvpropedit`'s 1-based
@@ -95,9 +97,16 @@ record. Exit code 1 (warnings) is accepted, 2 or more is a failure.
 
 After the edit the file is re-probed with **ffprobe** (MediaInfo, not Whisper). The new tags
 are compared with the requested ones (`fra`/`fre` are the same language); a mismatch records
-`failed`. Then `EpisodeFile.MediaInfo` is replaced with the fresh probe and `EpisodeFile.Languages`
-is recomputed from the tags (one entry per distinct audio language, `Unknown` for `und` or an
-unmapped tag), so the record matches the file. The verification record itself is kept.
+`failed`. The comparison reads one entry per audio stream (untagged streams included), the same
+per-stream view the verification feature uses, so the record's audio-relative stream index
+always lands on the right track. Then `EpisodeFile.MediaInfo` is replaced with the fresh probe and
+`EpisodeFile.Languages` is reconciled with the verification result rather than rebuilt from raw
+tags: it starts from the languages the import stored, every rewritten track now counts as its
+detected language, a rewritten track's old tag language is dropped only when no track still
+carries it, `Unknown` is never added (an `und` track stays out of the list), and a track that
+could not be written (no ISO 639-2 code) keeps the language the import decided — the record
+says why it was not written. In the common case `Languages` after the retag equals `Languages`
+after the import. The verification record itself is kept.
 
 ### Hardlinked files
 
@@ -105,12 +114,15 @@ A library file imported as a **hardlink** of a seeding torrent (or moved out of 
 client still links to) shares its bytes with the download. Editing those bytes changes the
 seed too. The service checks the file's link count through the disk provider (`st_nlink` on
 Linux/macOS) and falls back to the transfer mode the import actually used (`HardLink`) when
-the platform cannot report a count. Then:
+the platform cannot report a count. When neither says anything (link count unavailable and no
+hardlink transfer recorded, which is also the case for the manual command) the file is treated
+as *possibly* hardlinked: **Skip** records `skipped-hardlinked` with the reason
+`link count unavailable`, **Copy then retag** copies, **Retag in place** edits in place. Then:
 
 | Mode | What happens | Consequence for a seeding torrent |
 |---|---|---|
 | **Skip** (default) | Nothing is edited. One `Info` log line, record `skipped-hardlinked`. The record keeps the tracks it *would* have changed, so a later manual `RetagAudioTracks` (see below) can apply them once seeding is over. | None. The seed and the library file stay identical. |
-| **Copy then retag** | The file is copied next to itself (`<name>.mkv.krzw-retag.tmp`, same directory, permissions copied), the **copy** is retagged, and the copy is atomically renamed over the library path. Free space in the season folder is checked first (the file's size); on any failure — not enough space, copy error, `mkvpropedit` error — the temp file is deleted and the original is left untouched (`failed`). | None. The seed keeps its original bytes; the library file becomes an independent copy (link count 1), so you lose the disk-space saving of the hardlink for that file. |
+| **Copy then retag** | The file is copied next to itself (`<name>.mkv.krzw-retag.tmp`, same directory, permissions copied), the **copy** is retagged, and the copy is atomically renamed over the library path (where `rename(2)` is unavailable it is swapped in through a `<name>.mkv.krzw-retag.bak` of the original, which is restored if the swap fails). Free space in the season folder is checked first (the file's size); on any failure — not enough space, copy error, `mkvpropedit` error — the temp file is deleted and the original is left untouched (`failed`). | None. The seed keeps its original bytes; the library file becomes an independent copy (link count 1), so you lose the disk-space saving of the hardlink for that file. |
 | **Retag in place** | `mkvpropedit` edits the shared bytes directly. | **The seed is modified.** Its Matroska header no longer matches the torrent's piece hashes: the client's next recheck fails on those pieces, the torrent stops seeding (or is flagged as errored/missing pieces) and re-downloads them on a forced recheck. Use only if you do not seed from the library, or accept that outcome. |
 
 A file that is not hardlinked (a plain copy or move) is retagged directly in all three modes;
@@ -134,8 +146,11 @@ Migration 219 adds `EpisodeFiles.AudioTrackRetag` (JSON), exposed read-only on
 
 `result` is one of `done`, `skipped-hardlinked`, `skipped-container`, `failed`. Only `done`
 is final: a `skipped-*` or `failed` file is retried by the manual command (and nothing else —
-imports happen once). `error` carries the `mkvpropedit` output, the free-space refusal, or
-"file not found"; `skippedTracks` lists mismatched tracks that had no writable language.
+imports happen once). `tracks` always lists the planned edits, written only when `result` is `done` (so a
+`skipped-hardlinked` record says what a later manual retag would change). `skippedTracks` is a
+fork addition to the record shape: mismatched tracks that were left alone, with the reason (a
+detected language Sonarr does not know, or one without an ISO 639-2 code). `error` carries the
+`mkvpropedit` output, the free-space refusal, `link count unavailable`, or "file not found".
 
 ### Manual retag
 

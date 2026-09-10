@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.AudioTags;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MediaFiles.AudioTags
@@ -155,6 +157,10 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
         [TestCase("es", "spa")]
         [TestCase("nl", "dut")]
         [TestCase("ja", "jpn")]
+        [TestCase("cs", "cze")]
+        [TestCase("el", "gre")]
+        [TestCase("ro", "rum")]
+        [TestCase("zh", "chi")]
         public void should_map_detected_language_to_matroska_iso639_2_code(string detected, string expected)
         {
             var plan = AudioTrackRetagPlanner.Plan(File(Track(0, "und", detected)), Mkv, Threshold);
@@ -162,27 +168,140 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
             plan.Edits[0].To.Should().Be(expected);
         }
 
+        [TestCase("bod", "tib")]
+        [TestCase("ces", "cze")]
+        [TestCase("cym", "wel")]
+        [TestCase("deu", "ger")]
+        [TestCase("ell", "gre")]
+        [TestCase("eus", "baq")]
+        [TestCase("fas", "per")]
+        [TestCase("fra", "fre")]
+        [TestCase("hye", "arm")]
+        [TestCase("isl", "ice")]
+        [TestCase("kat", "geo")]
+        [TestCase("mkd", "mac")]
+        [TestCase("mri", "mao")]
+        [TestCase("msa", "may")]
+        [TestCase("mya", "bur")]
+        [TestCase("nld", "dut")]
+        [TestCase("ron", "rum")]
+        [TestCase("slk", "slo")]
+        [TestCase("sqi", "alb")]
+        [TestCase("zho", "chi")]
+        public void bibliographic_table_should_hold_the_twenty_standard_pairs(string terminology, string bibliographic)
+        {
+            AudioTrackRetagPlanner.MatroskaBibliographicCodes.Should().HaveCount(20);
+            AudioTrackRetagPlanner.MatroskaBibliographicCodes[terminology].Should().Be(bibliographic);
+        }
+
         [Test]
         public void iso6392_code_should_prefer_bibliographic_form()
         {
             AudioTrackRetagPlanner.Iso6392Code(Language.French).Should().Be("fre");
             AudioTrackRetagPlanner.Iso6392Code(Language.German).Should().Be("ger");
-            AudioTrackRetagPlanner.Iso6392Code(Language.English).Should().Be("eng");
+            AudioTrackRetagPlanner.Iso6392Code(Language.Dutch).Should().Be("dut");
+            AudioTrackRetagPlanner.Iso6392Code(Language.Czech).Should().Be("cze");
+            AudioTrackRetagPlanner.Iso6392Code(Language.Greek).Should().Be("gre");
+            AudioTrackRetagPlanner.Iso6392Code(Language.Chinese).Should().Be("chi");
+        }
+
+        [TestCase("English", "eng")]
+        [TestCase("Spanish", "spa")]
+        [TestCase("Italian", "ita")]
+        [TestCase("Japanese", "jpn")]
+        [TestCase("Russian", "rus")]
+        [TestCase("Polish", "pol")]
+        [TestCase("Swedish", "swe")]
+        public void iso6392_code_should_fall_back_to_terminology_code_when_no_bibliographic_form_exists(string name, string expected)
+        {
+            AudioTrackRetagPlanner.Iso6392Code(IsoLanguages.FindByName(name).Language).Should().Be(expected);
+        }
+
+        [Test]
+        public void iso6392_code_should_be_null_for_unknown()
+        {
             AudioTrackRetagPlanner.Iso6392Code(Language.Unknown).Should().BeNull();
         }
 
         [Test]
-        public void languages_from_tags_should_map_distinct_known_tags()
+        public void iso6392_code_should_be_deterministic()
         {
-            var languages = AudioTrackRetagPlanner.LanguagesFromTags(new[] { "eng", "fre", "fra", "und", "zzz" });
+            for (var i = 0; i < 50; i++)
+            {
+                AudioTrackRetagPlanner.Iso6392Code(Language.German).Should().Be("ger");
+            }
+        }
 
-            languages.Should().Equal(Language.English, Language.French, Language.Unknown);
+        // ----- Languages after a retag -----
+
+        private static List<AudioTrackRetagTrack> Rewritten(params (int Index, string From, string To)[] edits)
+        {
+            return edits.Select(e => new AudioTrackRetagTrack { StreamIndex = e.Index, From = e.From, To = e.To }).ToList();
         }
 
         [Test]
-        public void languages_from_tags_should_handle_null()
+        public void reconcile_should_keep_the_imported_languages_in_the_common_case()
         {
-            AudioTrackRetagPlanner.LanguagesFromTags(null).Should().BeEmpty();
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
+            var stored = new List<Language> { Language.French };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_add_the_detected_language_when_the_import_stored_the_tag()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
+            var stored = new List<Language> { Language.English };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_keep_a_language_another_track_still_carries()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "en"), Track(1, "eng", "fr") };
+            var stored = new List<Language> { Language.English, Language.French };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold).Should().Equal(Language.English, Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_never_add_unknown_for_an_und_track()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(0, "und", null, 0), Track(1, "eng", "fr") };
+            var stored = new List<Language> { Language.French };
+
+            var result = AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((1, "eng", "fre")), verification, Threshold);
+
+            result.Should().Equal(Language.French);
+            result.Should().NotContain(Language.Unknown);
+        }
+
+        [Test]
+        public void reconcile_should_retain_the_verified_language_of_a_track_that_could_not_be_written()
+        {
+            // track 1 verified as a language without an ISO 639-2 code: not rewritten, but the import's decision stands
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr"), Track(1, "eng", "xx") };
+            var stored = new List<Language> { Language.French, Language.English };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French, Language.English);
+        }
+
+        [Test]
+        public void reconcile_should_keep_stored_languages_when_nothing_was_rewritten()
+        {
+            var stored = new List<Language> { Language.French };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(stored, Rewritten(), null, Threshold).Should().Equal(Language.French);
+        }
+
+        [Test]
+        public void reconcile_should_handle_null_stored_languages()
+        {
+            var verification = new List<AudioLanguageVerification> { Track(0, "eng", "fr") };
+
+            AudioTrackRetagPlanner.ReconcileLanguages(null, Rewritten((0, "eng", "fre")), verification, Threshold).Should().Equal(Language.French);
         }
     }
 }
