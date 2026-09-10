@@ -165,7 +165,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
         /// only when no track still carries it; Unknown is never added; a track that could not be
         /// written keeps whatever the import decided (the record says why it was not written).
         /// </summary>
-        public static List<Language> ReconcileLanguages(List<Language> stored, IReadOnlyList<AudioTrackRetagTrack> rewritten, IEnumerable<AudioLanguageVerification> verification, double confidenceThreshold)
+        public static List<Language> ReconcileLanguages(List<Language> stored, IReadOnlyList<AudioTrackRetagTrack> rewritten, IEnumerable<AudioLanguageVerification> verification, double confidenceThreshold, IReadOnlyList<string> streamTags)
         {
             var result = (stored ?? new List<Language>()).Distinct().ToList();
             var rewrittenIndexes = rewritten.Select(e => e.StreamIndex).ToHashSet();
@@ -188,6 +188,15 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 else
                 {
                     current[track.StreamIndex] = TaggedLanguage(track.TaggedLanguage);
+                }
+            }
+
+            // streams the record does not cover (not probed by the trigger that fired) keep their tag
+            for (var i = 0; i < (streamTags?.Count ?? 0); i++)
+            {
+                if (!current.ContainsKey(i))
+                {
+                    current[i] = TaggedLanguage(streamTags[i]);
                 }
             }
 

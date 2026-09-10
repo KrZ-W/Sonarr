@@ -343,7 +343,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "after the edit the file still reports " + string.Join(", ", wrong.Select(e => $"a{e.StreamIndex}={(e.StreamIndex < tracks.Count ? tracks[e.StreamIndex].Language ?? "(none)" : "?")}")));
             }
 
-            episodeFile.Languages = AudioTrackRetagPlanner.ReconcileLanguages(episodeFile.Languages, plan.Edits, episodeFile.AudioLanguageVerification, _configService.AudioLanguageVerificationConfidenceThreshold);
+            episodeFile.Languages = AudioTrackRetagPlanner.ReconcileLanguages(episodeFile.Languages, plan.Edits, episodeFile.AudioLanguageVerification, _configService.AudioLanguageVerificationConfidenceThreshold, tracks.Select(t => t.Language).ToList());
 
             return Record(episodeFile, mode, AudioTrackRetagResult.Done, plan, null);
         }
