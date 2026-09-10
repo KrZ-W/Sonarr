@@ -293,7 +293,7 @@ an IMDb id are covered.
 ```yaml
 services:
   sonarr:
-    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.19   # pin to a release
+    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.20   # pin to a release
     container_name: sonarr
     environment:
       - PUID=1000
