@@ -186,10 +186,29 @@ at grab time, at rescan, or for libraries whose profiles do not care about langu
 
 ## Upstream
 
-No upstream Sonarr issue asks for speech-based language detection at import. Adjacent:
-[Sonarr#5598](https://github.com/Sonarr/Sonarr/issues/5598) — *Improve CF Comparison
-Between Release and File* (open). The same design ships in the Radarr fork against
-`MovieFile.AudioLanguageVerification`, where it also feeds the profile Language check.
+State as of 2026-09-10:
+
+- [Sonarr#8453](https://github.com/Sonarr/Sonarr/issues/8453) — *Support for External
+  Audio Language Provider / AI-Assisted Tagging* (closed **not planned** the day it was
+  filed, 2026-03). Asks for exactly this: tracks tagged `und`/`eng` regardless of content,
+  detected by an external provider such as Whisper and used for custom-format scoring.
+  Maintainers pointed to *Import Using Script* / a post-import custom script calling
+  ffmpeg+whisper. **Implemented natively here** for the detection half (tags are never
+  rewritten; that is the planned *Audio Track Retag* follow-up).
+- [Radarr#11385](https://github.com/Radarr/Radarr/issues/11385) — the same request on
+  Radarr (open, Needs Triage). Fixed in the Radarr fork, where the verified languages also
+  feed the profile Language check.
+- [Sonarr#7523](https://github.com/Sonarr/Sonarr/issues/7523) — *Reject Import if Audio
+  Language is Wrong* (closed not planned, 2024-12; deferred to #5598). Adjacent: the fork's
+  [Import-time Enforcement](import-time-enforcement.md) does the rejection through
+  MinFormatScore, and this feature makes sure it is based on verified audio, not tags.
+- [Sonarr#5225](https://github.com/Sonarr/Sonarr/issues/5225) — *Consider download failed if
+  episode language doesn't match profile* (closed 2022; "unlikely to treat a download as
+  failed because the language is wrong"). Adjacent; this fork rejects at import instead.
+- [Sonarr#5598](https://github.com/Sonarr/Sonarr/issues/5598) — *Improve CF Comparison
+  Between Release and File* (open). Related discussion.
+
+This fork does not submit changes upstream.
 
 ## Source
 
