@@ -12,6 +12,38 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.20] — based on Sonarr 4.0.19.2979
+
+### Fixed
+
+- **Audio Track Retag follow-ups.**
+  - The ISO 639-2 code written to the track was picked by a reverse lookup of the file-naming
+    B/T map, which has several bibliographic keys per language (`ger`/`gsw` → `deu`) and no
+    defined order, so German could be written as `gsw`. The planner now has an explicit table
+    of the 20 standard terminology→bibliographic pairs (`deu`→`ger`, `fra`→`fre`, `ces`→`cze`,
+    `nld`→`dut`, `ell`→`gre`, `ron`→`rum`, `slk`→`slo`, `zho`→`chi`, ...), falling back to the
+    terminology code; every pair is unit-tested.
+  - The post-edit check indexed `MediaInfo.AudioLanguages`, which drops untagged streams, with
+    the record's stream index over *all* audio streams; an untagged track ahead of the edited
+    one shifted the comparison. It now reads one entry per stream through the same layout
+    reader the verification feature uses.
+  - `EpisodeFile.Languages` is no longer rebuilt from raw tags after a retag (that could introduce
+    `Unknown` for an `und` track and drop the verified language of a track that had no ISO
+    code). It is reconciled with the verification result: import languages, rewritten tracks
+    counted as their detected language, `Unknown` never added; for the common case the list is
+    unchanged by the retag.
+  - When the platform cannot report a link count (non-Linux builds) and the import did not
+    record a hardlink transfer, *Skip* mode now records `skipped-hardlinked` with
+    `link count unavailable` instead of assuming the file is not linked; the manual command
+    behaves the same.
+  - The non-atomic fallback of *Copy then retag* (no `rename(2)`) no longer deletes the library
+    file before moving the copy in: it parks the original as `.krzw-retag.bak`, moves the copy
+    in, then drops the backup, and restores the original if the move fails.
+  - Docs: the `tracks` field is documented as the planned edits (always recorded), the
+    `skippedTracks` addition is documented; the new `en.json` keys are in alphabetical position.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.20`.
+
 ## [v4.0.19.2979+krzw.19] — based on Sonarr 4.0.19.2979
 
 ### Added
@@ -462,7 +494,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.19...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.20...HEAD
+[v4.0.19.2979+krzw.20]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.20
 [v4.0.19.2979+krzw.19]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.19
 [v4.0.19.2979+krzw.18]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.18
 [v4.0.19.2979+krzw.17]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.17
