@@ -148,7 +148,13 @@ namespace NzbDrone.Core.MediaFiles
             }
             else
             {
-                _diskTransferService.TransferFile(episodeFilePath, destinationFilePath, mode);
+                var transferred = _diskTransferService.TransferFile(episodeFilePath, destinationFilePath, mode);
+
+                // krzw(audio-track-retag): remember whether the library file is a hardlink of the download
+                if (localEpisode is not null)
+                {
+                    localEpisode.TransferMode = transferred;
+                }
             }
 
             _updateEpisodeFileService.ChangeFileDateForFile(episodeFile, series, episodes);

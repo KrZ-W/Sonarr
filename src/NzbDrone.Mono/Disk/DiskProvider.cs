@@ -464,6 +464,19 @@ namespace NzbDrone.Mono.Disk
             }
         }
 
+        // krzw(audio-track-retag): st_nlink of the file itself (symlinks are followed)
+        public override long GetHardLinkCount(string path)
+        {
+            if (Syscall.stat(path, out var stat) < 0)
+            {
+                var error = Stdlib.GetLastError();
+
+                throw new IOException($"Unable to stat '{path}': {error}");
+            }
+
+            return (long)stat.st_nlink;
+        }
+
         public override bool TryCreateRefLink(string source, string destination)
         {
             return _createRefLink.TryCreateRefLink(source, destination);

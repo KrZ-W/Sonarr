@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download;
@@ -53,6 +54,9 @@ namespace NzbDrone.Core.Parser.Model
         // krzw(audio-language-verification): per-track probe outcome and why it ran; carried to EpisodeFile at import
         public List<AudioLanguageVerification> AudioLanguageVerification { get; set; }
         public AudioLanguageTrigger AudioLanguageTrigger { get; set; }
+
+        // krzw(audio-track-retag): how the file actually reached the library (hardlink hint for the retag)
+        public TransferMode? TransferMode { get; set; }
 
         public int SeasonNumber
         {
