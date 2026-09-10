@@ -16,7 +16,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
         /// <summary>One of <see cref="AudioTrackRetagResult"/>.</summary>
         public string Result { get; set; }
 
-        /// <summary>Tracks whose language tag was rewritten (empty unless Result is "done").</summary>
+        /// <summary>The planned edits (streamIndex, from, to). Always recorded, so a skipped-hardlinked file says what a later retag would change; they were written to the file only when Result is "done".</summary>
         public List<AudioTrackRetagTrack> Tracks { get; set; } = new List<AudioTrackRetagTrack>();
 
         /// <summary>Mismatched tracks that were left alone, with the reason (e.g. no ISO 639-2 code).</summary>

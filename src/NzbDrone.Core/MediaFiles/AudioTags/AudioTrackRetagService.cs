@@ -5,6 +5,7 @@ using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Messaging.Commands;
@@ -31,12 +32,15 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                                           IExecute<RetagAudioTracksCommand>
     {
         public const string TempSuffix = ".krzw-retag.tmp";
+        public const string BackupSuffix = ".krzw-retag.bak";
+        public const string LinkCountUnavailable = "link count unavailable";
         public static readonly TimeSpan EditTimeout = TimeSpan.FromMinutes(10);
 
         private readonly IConfigService _configService;
         private readonly IDiskProvider _diskProvider;
         private readonly IAudioTrackTagger _tagger;
         private readonly IVideoFileInfoReader _videoFileInfoReader;
+        private readonly IAudioTrackLayoutReader _layoutReader;
         private readonly IMediaFileService _mediaFileService;
         private readonly ISeriesService _seriesService;
         private readonly Logger _logger;
@@ -45,6 +49,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                                       IDiskProvider diskProvider,
                                       IAudioTrackTagger tagger,
                                       IVideoFileInfoReader videoFileInfoReader,
+                                      IAudioTrackLayoutReader layoutReader,
                                       IMediaFileService mediaFileService,
                                       ISeriesService seriesService,
                                       Logger logger)
@@ -53,6 +58,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
             _diskProvider = diskProvider;
             _tagger = tagger;
             _videoFileInfoReader = videoFileInfoReader;
+            _layoutReader = layoutReader;
             _mediaFileService = mediaFileService;
             _seriesService = seriesService;
             _logger = logger;
@@ -144,25 +150,35 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "file not found");
             }
 
-            var hardlinked = IsHardlinked(path, hardlinkHint);
+            var hardlink = GetHardlinkState(path, hardlinkHint);
 
-            if (hardlinked && mode == AudioTrackRetagHardlinkMode.Skip)
+            if (mode == AudioTrackRetagHardlinkMode.Skip)
             {
-                _logger.Info("'{0}' shares its bytes with another path (hardlink); audio tracks left as they are (hardlinked files: Skip)", path);
-                return Record(episodeFile, mode, AudioTrackRetagResult.SkippedHardlinked, plan, null);
+                if (hardlink == HardlinkState.Linked)
+                {
+                    _logger.Info("'{0}' shares its bytes with another path (hardlink); audio tracks left as they are (hardlinked files: Skip)", path);
+                    return Record(episodeFile, mode, AudioTrackRetagResult.SkippedHardlinked, plan, null);
+                }
+
+                if (hardlink == HardlinkState.Unknown)
+                {
+                    // Fail safe: without a link count we cannot promise the seed stays intact.
+                    _logger.Info("'{0}' may be hardlinked (link count unavailable on this platform); audio tracks left as they are (hardlinked files: Skip)", path);
+                    return Record(episodeFile, mode, AudioTrackRetagResult.SkippedHardlinked, plan, LinkCountUnavailable);
+                }
             }
 
             try
             {
-                if (hardlinked && mode == AudioTrackRetagHardlinkMode.CopyThenRetag)
+                if (hardlink != HardlinkState.NotLinked && mode == AudioTrackRetagHardlinkMode.CopyThenRetag)
                 {
                     CopyThenRetag(path, plan);
                 }
                 else
                 {
-                    if (hardlinked)
+                    if (hardlink != HardlinkState.NotLinked)
                     {
-                        _logger.Info("'{0}' is hardlinked and will be retagged in place: every linked path (a seeding torrent included) changes with it", path);
+                        _logger.Info("'{0}' is (or may be) hardlinked and will be retagged in place: every linked path (a seeding torrent included) changes with it", path);
                     }
 
                     _tagger.SetLanguages(path, plan.Edits, EditTimeout);
@@ -209,13 +225,53 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
 
                 if (!_diskProvider.TryRenameFile(tempPath, path))
                 {
-                    _diskProvider.MoveFile(tempPath, path, true);
+                    SwapInto(path, tempPath);
                 }
             }
             catch (Exception ex)
             {
                 DeleteTemp(tempPath);
                 throw new AudioTrackRetagException($"copy-then-retag failed: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Non-atomic fallback when rename(2) is unavailable: park the library file as .bak, move the
+        /// retagged copy in, drop the .bak. A failure after the first move restores the original.
+        /// </summary>
+        private void SwapInto(string path, string tempPath)
+        {
+            var backupPath = path + BackupSuffix;
+
+            _diskProvider.MoveFile(path, backupPath);
+
+            try
+            {
+                _diskProvider.MoveFile(tempPath, path);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Unable to move the retagged copy over '{0}', restoring the original", path);
+
+                try
+                {
+                    _diskProvider.MoveFile(backupPath, path);
+                }
+                catch (Exception restoreEx)
+                {
+                    _logger.Error(restoreEx, "Unable to restore '{0}' from '{1}'; the original is still there under that name", path, backupPath);
+                }
+
+                throw;
+            }
+
+            try
+            {
+                _diskProvider.DeleteFile(backupPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Retag succeeded but the parked original '{0}' could not be deleted", backupPath);
             }
         }
 
@@ -234,7 +290,14 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
             }
         }
 
-        private bool IsHardlinked(string path, bool hint)
+        private enum HardlinkState
+        {
+            NotLinked,
+            Linked,
+            Unknown
+        }
+
+        private HardlinkState GetHardlinkState(string path, bool hint)
         {
             try
             {
@@ -242,12 +305,12 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
 
                 if (links > 1)
                 {
-                    return true;
+                    return HardlinkState.Linked;
                 }
 
                 if (links == 1)
                 {
-                    return false;
+                    return HardlinkState.NotLinked;
                 }
             }
             catch (Exception ex)
@@ -255,7 +318,8 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 _logger.Debug(ex, "Unable to read the link count of '{0}', using the import transfer mode instead", path);
             }
 
-            return hint;
+            // 0 = the platform cannot tell; the import's transfer mode is the only remaining evidence
+            return hint ? HardlinkState.Linked : HardlinkState.Unknown;
         }
 
         private AudioTrackRetag VerifyAndRecord(EpisodeFile episodeFile, string path, AudioTrackRetagHardlinkMode mode, AudioTrackRetagPlan plan)
@@ -267,22 +331,19 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "the file could not be probed after the edit");
             }
 
-            var tags = mediaInfo.AudioLanguages ?? Enumerable.Empty<string>().ToList();
-            var wrong = plan.Edits.Where(e => e.StreamIndex >= tags.Count || !SameLanguage(tags[e.StreamIndex], e.To)).ToList();
+            // One entry per audio stream, untagged streams included, so the index matches the record's
+            // audio-relative StreamIndex (MediaInfo.AudioLanguages drops empty tags and would shift it).
+            var tracks = _layoutReader.Read(mediaInfo);
+            var wrong = plan.Edits.Where(e => e.StreamIndex >= tracks.Count || !SameLanguage(tracks[e.StreamIndex].Language, e.To)).ToList();
 
             episodeFile.MediaInfo = mediaInfo;
 
-            var languages = AudioTrackRetagPlanner.LanguagesFromTags(tags);
-
-            if (languages.Any())
-            {
-                episodeFile.Languages = languages;
-            }
-
             if (wrong.Any())
             {
-                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "after the edit the file still reports " + string.Join(", ", wrong.Select(e => $"a{e.StreamIndex}={(e.StreamIndex < tags.Count ? tags[e.StreamIndex] : "?")}")));
+                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "after the edit the file still reports " + string.Join(", ", wrong.Select(e => $"a{e.StreamIndex}={(e.StreamIndex < tracks.Count ? tracks[e.StreamIndex].Language ?? "(none)" : "?")}")));
             }
+
+            episodeFile.Languages = AudioTrackRetagPlanner.ReconcileLanguages(episodeFile.Languages, plan.Edits, episodeFile.AudioLanguageVerification, _configService.AudioLanguageVerificationConfidenceThreshold);
 
             return Record(episodeFile, mode, AudioTrackRetagResult.Done, plan, null);
         }
