@@ -10,7 +10,12 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- Docs: the Audio Language Verification page and the FORK.md issue index now cross-reference
+  upstream [Sonarr#8453](https://github.com/Sonarr/Sonarr/issues/8453),
+  [Sonarr#7523](https://github.com/Sonarr/Sonarr/issues/7523), [Sonarr#5225](https://github.com/Sonarr/Sonarr/issues/5225)
+  and [Radarr#11385](https://github.com/Radarr/Radarr/issues/11385). Docs only.
 
 ## [v4.0.19.2979+krzw.18] — based on Sonarr 4.0.19.2979
 
