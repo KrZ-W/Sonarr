@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NLog;
@@ -25,7 +26,9 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
     /// Post-import "Audio Track Retag": rewrites the language tag of the audio tracks the
     /// Audio Language Verification record says are mistagged, header-only, on the library
     /// file. Runs once per file (result "done" is final), only for new downloads, never on
-    /// rescan / refresh / media-info update.
+    /// rescan / refresh / media-info update. A non-Matroska file is skipped, or, with
+    /// "Non-MKV files" = Remux to MKV, stream-copied by ffmpeg into a new .mkv that replaces
+    /// it (the file record, path and extension change; the rename events are raised).
     /// </summary>
     public class AudioTrackRetagService : IAudioTrackRetagService,
                                           IHandle<EpisodeImportedEvent>,
@@ -33,34 +36,49 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
     {
         public const string TempSuffix = ".krzw-retag.tmp";
         public const string BackupSuffix = ".krzw-retag.bak";
+        public const string RemuxTempSuffix = ".krzw-remux.tmp.mkv";
+        public const string RemuxBackupSuffix = ".krzw-remux.bak";
+        public const int RemuxTimeoutFactor = 10;
         public const string LinkCountUnavailable = "link count unavailable";
         public static readonly TimeSpan EditTimeout = TimeSpan.FromMinutes(10);
+
+        /// <summary>A remux may not run longer than <see cref="RemuxTimeoutFactor"/> x the verification timeout (default 120 s, so 20 min), never less than this floor.</summary>
+        public static readonly TimeSpan RemuxTimeoutFloor = TimeSpan.FromMinutes(10);
+
+        /// <summary>Tolerance between source and remuxed duration as reported by ffprobe.</summary>
+        public static readonly TimeSpan RemuxDurationTolerance = TimeSpan.FromSeconds(1);
 
         private readonly IConfigService _configService;
         private readonly IDiskProvider _diskProvider;
         private readonly IAudioTrackTagger _tagger;
+        private readonly IAudioTrackRemuxer _remuxer;
         private readonly IVideoFileInfoReader _videoFileInfoReader;
         private readonly IAudioTrackLayoutReader _layoutReader;
         private readonly IMediaFileService _mediaFileService;
         private readonly ISeriesService _seriesService;
+        private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
         public AudioTrackRetagService(IConfigService configService,
                                       IDiskProvider diskProvider,
                                       IAudioTrackTagger tagger,
+                                      IAudioTrackRemuxer remuxer,
                                       IVideoFileInfoReader videoFileInfoReader,
                                       IAudioTrackLayoutReader layoutReader,
                                       IMediaFileService mediaFileService,
                                       ISeriesService seriesService,
+                                      IEventAggregator eventAggregator,
                                       Logger logger)
         {
             _configService = configService;
             _diskProvider = diskProvider;
             _tagger = tagger;
+            _remuxer = remuxer;
             _videoFileInfoReader = videoFileInfoReader;
             _layoutReader = layoutReader;
             _mediaFileService = mediaFileService;
             _seriesService = seriesService;
+            _eventAggregator = eventAggregator;
             _logger = logger;
         }
 
@@ -111,7 +129,8 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
         public AudioTrackRetag Retag(EpisodeFile episodeFile, Series series, bool hardlinkHint, bool manual)
         {
             var path = LibraryPath(episodeFile, series);
-            var plan = AudioTrackRetagPlanner.Plan(episodeFile, path, _configService.AudioLanguageVerificationConfidenceThreshold);
+            var remuxNonMkv = _configService.AudioTrackRetagNonMkvMode == AudioTrackRetagNonMkvMode.RemuxToMkv;
+            var plan = AudioTrackRetagPlanner.Plan(episodeFile, path, _configService.AudioLanguageVerificationConfidenceThreshold, remuxNonMkv);
             var mode = _configService.AudioTrackRetagHardlinkMode;
 
             switch (plan.SkipReason)
@@ -148,6 +167,14 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
             {
                 _logger.Warn("Cannot retag audio tracks: '{0}' does not exist", path);
                 return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "file not found");
+            }
+
+            if (plan.Remux)
+            {
+                // A remux writes a brand-new file (link count 1 by construction) and only ever deletes the
+                // library's own directory entry, so the hardlink mode does not apply: a seeding hardlink of
+                // the source keeps its bytes under the client's path whatever the mode says.
+                return RemuxToMkv(episodeFile, series, path, mode, plan);
             }
 
             var hardlink = GetHardlinkState(path, hardlinkHint);
@@ -193,6 +220,176 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
             _logger.Info("Retagged audio tracks of '{0}': {1}", path, string.Join(", ", plan.Edits.Select(e => $"a{e.StreamIndex} {e.From ?? "und"} -> {e.To}")));
 
             return VerifyAndRecord(episodeFile, path, mode, plan);
+        }
+
+        /// <summary>Upper bound for one ffmpeg remux: 10 x the verification timeout, at least <see cref="RemuxTimeoutFloor"/>.</summary>
+        public static TimeSpan RemuxTimeout(int verificationTimeoutSeconds)
+        {
+            var scaled = TimeSpan.FromSeconds(Math.Max(0, verificationTimeoutSeconds) * (long)RemuxTimeoutFactor);
+
+            return scaled > RemuxTimeoutFloor ? scaled : RemuxTimeoutFloor;
+        }
+
+        /// <summary>Path the remuxed file takes: same directory and stem, .mkv extension.</summary>
+        public static string RemuxTargetPath(string path)
+        {
+            return Path.ChangeExtension(path, AudioTrackRetagPlanner.MkvExtension);
+        }
+
+        /// <summary>Path of the temporary output written next to the source while ffmpeg runs.</summary>
+        public static string RemuxTempPath(string path)
+        {
+            return Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, Path.GetFileNameWithoutExtension(path) + RemuxTempSuffix);
+        }
+
+        /// <summary>
+        /// "Non-MKV files: Remux to MKV". ffmpeg stream-copies the source into a temporary .mkv in the same
+        /// directory with the corrected audio languages, the result is checked with ffprobe (stream count,
+        /// duration, tags), then the source is parked as .krzw-remux.bak, the temp moved to the .mkv path,
+        /// the backup deleted, and the file record (path, size, media info, languages) updated. Any failure
+        /// deletes the temp, restores the original from the backup when one was made, and records "failed".
+        /// </summary>
+        private AudioTrackRetag RemuxToMkv(EpisodeFile episodeFile, Series series, string path, AudioTrackRetagHardlinkMode mode, AudioTrackRetagPlan plan)
+        {
+            var originalContainer = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+
+            if (series?.Path.IsNullOrWhiteSpace() != false)
+            {
+                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, "remux needs the series folder to compute the new relative path");
+            }
+
+            var targetPath = RemuxTargetPath(path);
+            var tempPath = RemuxTempPath(path);
+
+            if (_diskProvider.FileExists(targetPath))
+            {
+                _logger.Warn("Cannot remux '{0}': '{1}' already exists", path, targetPath);
+                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, $"'{Path.GetFileName(targetPath)}' already exists next to the file");
+            }
+
+            var size = _diskProvider.GetFileSize(path);
+            var folder = _diskProvider.GetParentFolder(path);
+            var free = _diskProvider.GetAvailableSpace(folder);
+
+            if (free.HasValue && free.Value < size)
+            {
+                _logger.Warn("Cannot remux '{0}': {1} free in '{2}', {3} needed", path, free.Value.SizeSuffix(), folder, size.SizeSuffix());
+                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, $"not enough free space in '{folder}' to remux the file ({free.Value.SizeSuffix()} free, {size.SizeSuffix()} needed)");
+            }
+
+            var sourceInfo = episodeFile.MediaInfo?.RawStreamData.IsNotNullOrWhiteSpace() == true ? episodeFile.MediaInfo : _videoFileInfoReader.GetMediaInfo(path);
+            var timeout = RemuxTimeout(_configService.AudioLanguageVerificationTimeout);
+            var backupPath = path + RemuxBackupSuffix;
+            var parked = false;
+            MediaInfoModel newInfo;
+            List<AudioTrackInfo> tracks;
+
+            try
+            {
+                _logger.Info("Remuxing '{0}' ({1}) into '{2}' to write the audio language tags: {3}", path, originalContainer, Path.GetFileName(targetPath), string.Join(", ", plan.Edits.Select(e => $"a{e.StreamIndex} {e.From ?? "und"} -> {e.To}")));
+
+                var map = _remuxer.Remux(path, tempPath, sourceInfo?.RawStreamData, plan.Edits, timeout);
+
+                if (!_diskProvider.FileExists(tempPath))
+                {
+                    throw new AudioTrackRetagException("ffmpeg produced no output file");
+                }
+
+                newInfo = _videoFileInfoReader.GetMediaInfo(tempPath);
+
+                if (newInfo == null)
+                {
+                    throw new AudioTrackRetagException("the remuxed file could not be probed");
+                }
+
+                var newCount = FfmpegMatroskaRemuxer.CountStreams(newInfo.RawStreamData);
+
+                if (!map.MapAll && newCount >= 0 && newCount != map.Kept.Count)
+                {
+                    throw new AudioTrackRetagException($"the remuxed file has {newCount} stream(s), {map.Kept.Count} expected");
+                }
+
+                if (sourceInfo?.RunTime > TimeSpan.Zero && newInfo.RunTime > TimeSpan.Zero && (newInfo.RunTime - sourceInfo.RunTime).Duration() > RemuxDurationTolerance)
+                {
+                    throw new AudioTrackRetagException($"the remuxed file lasts {newInfo.RunTime} but the source {sourceInfo.RunTime}");
+                }
+
+                tracks = _layoutReader.Read(newInfo);
+                var wrong = plan.Edits.Where(e => e.StreamIndex >= tracks.Count || !SameLanguage(tracks[e.StreamIndex].Language, e.To)).ToList();
+
+                if (wrong.Any())
+                {
+                    throw new AudioTrackRetagException("after the remux the file still reports " + string.Join(", ", wrong.Select(e => $"a{e.StreamIndex}={(e.StreamIndex < tracks.Count ? tracks[e.StreamIndex].Language ?? "(none)" : "?")}")));
+                }
+
+                try
+                {
+                    _diskProvider.CopyPermissions(path, tempPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug(ex, "Unable to copy permissions to '{0}'", tempPath);
+                }
+
+                _diskProvider.MoveFile(path, backupPath);
+                parked = true;
+                _diskProvider.MoveFile(tempPath, targetPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Remux of '{0}' failed; the original is left untouched", path);
+                DeleteTemp(tempPath);
+
+                if (parked)
+                {
+                    RestoreParked(path, backupPath);
+                }
+
+                return Record(episodeFile, mode, AudioTrackRetagResult.Failed, plan, $"remux failed: {ex.Message}");
+            }
+
+            try
+            {
+                _diskProvider.DeleteFile(backupPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Remux succeeded but the parked original '{0}' could not be deleted", backupPath);
+            }
+
+            var previousPath = path;
+            var previousRelativePath = episodeFile.RelativePath;
+
+            episodeFile.RelativePath = series.Path.GetRelativePath(targetPath);
+            episodeFile.Path = targetPath;
+            episodeFile.Size = _diskProvider.GetFileSize(targetPath);
+            episodeFile.MediaInfo = newInfo;
+            episodeFile.Languages = AudioTrackRetagPlanner.ReconcileLanguages(episodeFile.Languages, plan.Edits, episodeFile.AudioLanguageVerification, _configService.AudioLanguageVerificationConfidenceThreshold, tracks.Select(t => t.Language).ToList());
+
+            _logger.Info("Remuxed '{0}' into '{1}' and retagged audio tracks: {2}", previousPath, targetPath, string.Join(", ", plan.Edits.Select(e => $"a{e.StreamIndex} {e.From ?? "und"} -> {e.To}")));
+
+            var outcome = Record(episodeFile, mode, AudioTrackRetagResult.Done, plan, null, originalContainer);
+
+            // the same events the renamer raises, so notifications, webhooks and media servers see the new path
+            _eventAggregator.PublishEvent(new EpisodeFileRenamedEvent(series, episodeFile, previousPath));
+            _eventAggregator.PublishEvent(new SeriesRenamedEvent(series, new List<RenamedEpisodeFile>
+            {
+                new RenamedEpisodeFile { EpisodeFile = episodeFile, PreviousPath = previousPath, PreviousRelativePath = previousRelativePath }
+            }));
+
+            return outcome;
+        }
+
+        private void RestoreParked(string path, string backupPath)
+        {
+            try
+            {
+                _diskProvider.MoveFile(backupPath, path);
+            }
+            catch (Exception restoreEx)
+            {
+                _logger.Error(restoreEx, "Unable to restore '{0}' from '{1}'; the original is still there under that name", path, backupPath);
+            }
         }
 
         private void CopyThenRetag(string path, AudioTrackRetagPlan plan)
@@ -354,7 +551,7 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                    (tag.IsNotNullOrWhiteSpace() && IsoLanguages.Find(tag)?.Language is { } a && IsoLanguages.Find(expected)?.Language == a);
         }
 
-        private AudioTrackRetag Record(EpisodeFile episodeFile, AudioTrackRetagHardlinkMode mode, string result, AudioTrackRetagPlan plan, string error)
+        private AudioTrackRetag Record(EpisodeFile episodeFile, AudioTrackRetagHardlinkMode mode, string result, AudioTrackRetagPlan plan, string error, string remuxedFrom = null)
         {
             var outcome = new AudioTrackRetag
             {
@@ -363,7 +560,9 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 Tracks = plan.Edits.ToList(),
                 SkippedTracks = plan.SkippedTracks.ToList(),
                 At = DateTime.UtcNow,
-                Error = error
+                Error = error,
+                Remuxed = remuxedFrom != null,
+                OriginalContainer = remuxedFrom
             };
 
             episodeFile.AudioTrackRetag = outcome;

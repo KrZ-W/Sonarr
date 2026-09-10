@@ -46,6 +46,7 @@ namespace Sonarr.Api.V3.Config
         // krzw(audio-track-retag)
         public bool AudioTrackRetagEnabled { get; set; }
         public AudioTrackRetagHardlinkMode AudioTrackRetagHardlinkMode { get; set; }
+        public AudioTrackRetagNonMkvMode AudioTrackRetagNonMkvMode { get; set; }
     }
 
     public static class MediaManagementConfigResourceMapper
@@ -89,7 +90,8 @@ namespace Sonarr.Api.V3.Config
 
                 // krzw(audio-track-retag)
                 AudioTrackRetagEnabled = model.AudioTrackRetagEnabled,
-                AudioTrackRetagHardlinkMode = model.AudioTrackRetagHardlinkMode
+                AudioTrackRetagHardlinkMode = model.AudioTrackRetagHardlinkMode,
+                AudioTrackRetagNonMkvMode = model.AudioTrackRetagNonMkvMode
             };
         }
     }

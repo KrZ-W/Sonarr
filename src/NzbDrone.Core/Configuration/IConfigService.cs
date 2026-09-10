@@ -51,6 +51,7 @@ namespace NzbDrone.Core.Configuration
         // krzw(audio-track-retag)
         bool AudioTrackRetagEnabled { get; set; }
         AudioTrackRetagHardlinkMode AudioTrackRetagHardlinkMode { get; set; }
+        AudioTrackRetagNonMkvMode AudioTrackRetagNonMkvMode { get; set; }
         bool UseScriptImport { get; set; }
         string ScriptImportPath { get; set; }
         bool ImportExtraFiles { get; set; }
