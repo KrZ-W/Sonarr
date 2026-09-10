@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Languages;
-using NzbDrone.Core.Organizer;
+using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.MediaFiles.AudioTags
@@ -102,8 +102,39 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
         }
 
         /// <summary>
-        /// The ISO 639-2 code Matroska expects (bibliographic form, e.g. "fre" for French),
-        /// or null when the language has no ISO entry.
+        /// ISO 639-2 terminology (T) to bibliographic (B) codes: the 20 languages that have two
+        /// codes. Matroska's Language element uses the B form ("fre", "ger"). Explicit and
+        /// deterministic on purpose: FileNameBuilder.Iso639BTMap maps several B keys to one T
+        /// value (ger and gsw both to deu) and a reverse lookup of it is hash-ordered.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> MatroskaBibliographicCodes = new Dictionary<string, string>
+        {
+            { "bod", "tib" },
+            { "ces", "cze" },
+            { "cym", "wel" },
+            { "deu", "ger" },
+            { "ell", "gre" },
+            { "eus", "baq" },
+            { "fas", "per" },
+            { "fra", "fre" },
+            { "hye", "arm" },
+            { "isl", "ice" },
+            { "kat", "geo" },
+            { "mkd", "mac" },
+            { "mri", "mao" },
+            { "msa", "may" },
+            { "mya", "bur" },
+            { "nld", "dut" },
+            { "ron", "rum" },
+            { "slk", "slo" },
+            { "sqi", "alb" },
+            { "zho", "chi" }
+        };
+
+        /// <summary>
+        /// The ISO 639-2 code Matroska expects (bibliographic form, e.g. "fre" for French, the
+        /// terminology code itself when the language has no B form), or null when the language
+        /// has no ISO entry.
         /// </summary>
         public static string Iso6392Code(Language language)
         {
@@ -114,12 +145,11 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
                 return null;
             }
 
-            var bibliographic = FileNameBuilder.Iso639BTMap.FirstOrDefault(kv => kv.Value == iso.ThreeLetterCode).Key;
-
-            return bibliographic ?? iso.ThreeLetterCode;
+            return MatroskaBibliographicCodes.TryGetValue(iso.ThreeLetterCode, out var bibliographic) ? bibliographic : iso.ThreeLetterCode;
         }
 
-        private static Language TaggedLanguage(string tag)
+        /// <summary>Language a track tag means; Unknown for null/empty/"und" or an unmapped tag.</summary>
+        public static Language TaggedLanguage(string tag)
         {
             if (tag.IsNullOrWhiteSpace() || tag.Equals("und", StringComparison.OrdinalIgnoreCase))
             {
@@ -129,22 +159,54 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
             return IsoLanguages.Find(tag)?.Language ?? Language.Unknown;
         }
 
-        /// <summary>Languages of the file as its (re-probed) tags say, one per distinct audio language, Unknown for unmapped tags.</summary>
-        public static List<Language> LanguagesFromTags(IEnumerable<string> audioLanguageTags)
+        /// <summary>
+        /// Languages of the file after a retag: the Languages the import stored, with each rewritten
+        /// track now counted as its detected language. A rewritten track's old tag language is dropped
+        /// only when no track still carries it; Unknown is never added; a track that could not be
+        /// written keeps whatever the import decided (the record says why it was not written).
+        /// </summary>
+        public static List<Language> ReconcileLanguages(List<Language> stored, IReadOnlyList<AudioTrackRetagTrack> rewritten, IEnumerable<AudioLanguageVerification> verification, double confidenceThreshold)
         {
-            var languages = new List<Language>();
+            var result = (stored ?? new List<Language>()).Distinct().ToList();
+            var rewrittenIndexes = rewritten.Select(e => e.StreamIndex).ToHashSet();
 
-            foreach (var tag in audioLanguageTags ?? Enumerable.Empty<string>())
+            // what every track means now: detected for rewritten tracks, the import's view for the rest
+            var current = new Dictionary<int, Language>();
+
+            foreach (var track in verification ?? Enumerable.Empty<AudioLanguageVerification>())
             {
-                var language = TaggedLanguage(tag);
+                var detected = track.DetectedLanguage.IsNotNullOrWhiteSpace() ? IsoLanguages.Find(track.DetectedLanguage)?.Language : null;
 
-                if (!languages.Contains(language))
+                if (rewrittenIndexes.Contains(track.StreamIndex))
                 {
-                    languages.Add(language);
+                    current[track.StreamIndex] = detected ?? Language.Unknown;
+                }
+                else if (detected != null && track.Confidence >= confidenceThreshold)
+                {
+                    current[track.StreamIndex] = detected;
+                }
+                else
+                {
+                    current[track.StreamIndex] = TaggedLanguage(track.TaggedLanguage);
                 }
             }
 
-            return languages;
+            foreach (var edit in rewritten)
+            {
+                if (current.TryGetValue(edit.StreamIndex, out var detected) && detected != Language.Unknown && !result.Contains(detected))
+                {
+                    result.Add(detected);
+                }
+
+                var oldTag = TaggedLanguage(edit.From);
+
+                if (oldTag != Language.Unknown && !current.ContainsValue(oldTag))
+                {
+                    result.Remove(oldTag);
+                }
+            }
+
+            return result.Any() ? result : (stored ?? new List<Language>());
         }
     }
 }
