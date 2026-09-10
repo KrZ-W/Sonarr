@@ -125,8 +125,8 @@ track layout in the pack, and:
   you enabled the feature.
 
 The outcome is stored per track on each episode file (`audioLanguageVerification` in
-`GET /api/v3/episodefile?seriesId=…`) and is left untouched by *Rescan Series*. Files are
-never modified; the planned *Audio Track Retag* feature will use that record.
+`GET /api/v3/episodefile?seriesId=…`) and is left untouched by *Rescan Series*. This feature
+never modifies files; to fix the tag in the files too, see the next recipe.
 
 > **Cost:** one ffmpeg extraction and one Whisper call per suspicious track per distinct
 > track layout in a download — a 24-episode pack with identical layouts costs one probe.
@@ -134,6 +134,51 @@ never modified; the planned *Audio Track Retag* feature will use that record.
 > group mislabels tracks that *look* right.
 
 > Full reference: [Audio Language Verification](features/audio-language-verification.md).
+
+---
+
+## Recipe: Fix the language tag of rescued files
+
+**Goal:** the French season pack rescued by the previous recipe imports fine, but Plex still
+calls its audio "English" and Bazarr fetches English subtitles, because they read the
+track's language tag (`eng`) rather than what Sonarr decided. Make the files themselves say
+`fre`.
+
+1. Have the previous recipe working (a verification record is required; nothing is
+   re-probed).
+2. **Settings → Media Management → show advanced → Audio Language Verification:** tick
+   **Retag Audio Tracks**.
+3. Pick **Hardlinked Files** for your setup:
+   - you import by **copy** or **move** and do not seed from the library → any value works,
+     the file is retagged directly;
+   - you import by **hardlink** and keep seeding → *Skip* (default) leaves seeding files alone
+     (record `skipped-hardlinked`), *Copy then retag* gives the library its own retagged copy
+     and leaves the seed intact (costs the file's size in disk space per episode), *Retag in
+     place* edits the shared bytes — **the torrent will fail its hash check and stop seeding**.
+
+That's it. Right after an import whose verification found a mistagged track, Sonarr runs
+`mkvpropedit` (bundled in the image) on that episode's library file — a header-only edit,
+streams are never rewritten — re-probes the file, and updates the episode file's languages.
+Each episode of a pack is decided on its own record. Check with:
+
+```bash
+ffprobe -v error -select_streams a -show_entries stream_tags=language -of csv=p=0 "Series - S01E01.mkv"
+curl -s "http://sonarr:8989/api/v3/episodefile?seriesId=123" -H "X-Api-Key: $KEY" | jq '.[].audioTrackRetag'
+```
+
+For a file imported before you enabled this, or one skipped while it was seeding:
+
+```bash
+curl -s -X POST http://sonarr:8989/api/v3/command -H "X-Api-Key: $KEY" \
+     -H 'Content-Type: application/json' -d '{"name":"RetagAudioTracks","episodeFileId":456}'
+```
+
+It applies the same rules (MKV only, verification threshold, hardlink mode) to that one
+file. A file whose record says `done` is never retagged twice; *Rescan Series* never retags.
+
+> Only Matroska files can be edited; MP4/AVI files are left alone (record `skipped-container`).
+
+> Full reference: [Audio Track Retag](features/audio-track-retag.md).
 
 ---
 

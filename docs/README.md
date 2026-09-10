@@ -20,6 +20,7 @@ versioning scheme, see [`../FORK.md`](../FORK.md). For the release history, see
 | [Atomic Upgrade Imports](features/atomic-upgrade-imports.md) | Existing file survives unless the replacement import fully commits; failed upgrades restore everything |
 | [Season-Pack Partial Fill](features/season-pack-partial-fill.md) | Full-season packs can fill missing / upgrade some episodes |
 | [Audio Language Verification](features/audio-language-verification.md) | Whisper-backed audio language probe at import when tags contradict the claim / are unknown / would cause a rejection; verified languages outrank tags, one probe per layout per season pack, outcome stored per track |
+| [Audio Track Retag](features/audio-track-retag.md) | Post-import header-only `mkvpropedit` rewrite of the mistagged MKV audio-track language tags from the verification record, per episode; hardlink-aware modes, outcome stored per file, manual per-file command |
 | [Completed Download Handling](features/completed-download-handling.md) | Configurable CDH interval + per-run logging + stuck `ImportPending` self-heal |
 | [Regional Language Parsing](features/regional-language-parsing.md) | `en-CA` / `fr-CA` parsing entries |
 | [Configurable Indexer Cooldown](features/configurable-indexer-cooldown.md) | Editable indexer back-off/escalation schedule |
