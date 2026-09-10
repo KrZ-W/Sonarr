@@ -1,6 +1,6 @@
 # Audio Track Retag
 
-> **Status:** stable · **Since:** `v4.0.19.2979+krzw.19` · **Surface:** Settings → Media Management → *Audio Language Verification* (advanced) → *Retag Audio Tracks* / *Hardlinked Files*, `EpisodeFile.AudioTrackRetag` (`GET /api/v3/episodefile`), command `RetagAudioTracks`
+> **Status:** stable · **Since:** `v4.0.19.2979+krzw.19` (remux of non-MKV files: `+krzw.22`) · **Surface:** Settings → Media Management → *Audio Language Verification* (advanced) → *Retag Audio Tracks* / *Hardlinked Files* / *Non-MKV Files*, `EpisodeFile.AudioTrackRetag` (`GET /api/v3/episodefile`), command `RetagAudioTracks`
 
 ## What it does
 
@@ -19,6 +19,13 @@ tag. It takes a fraction of a second on local disk.
 The outcome is stored on the episode file as `AudioTrackRetag`, the file's `MediaInfo` and
 `Languages` are refreshed from a re-probe of the edited file, and a file whose result is `done`
 is never touched again.
+
+Files that are not Matroska (MP4, M4V, AVI, ...) cannot be edited by `mkvpropedit`. By default
+they are left alone (`skipped-container`). With **Non-MKV Files** set to *Remux to MKV then
+retag*, the file is **stream-copied** by the bundled `ffmpeg` into a new `.mkv` next to it with
+the corrected language tags written in the same pass, verified, and swapped in under the
+`.mkv` extension; see [Non-MKV files: remux](#non-mkv-files-remux). That path rewrites the
+whole file (at disk speed, never re-encoding) and changes its path.
 
 ## Why it exists
 
@@ -51,10 +58,13 @@ Settings → Media Management → show advanced → **Audio Language Verificatio
 |---|---|---|
 | **Retag Audio Tracks** | off | Master switch for the post-import retag. Off means no process is ever started by an import. |
 | **Hardlinked Files** | *Skip* | What to do when the library file shares its bytes with another path (see below): *Skip*, *Copy then retag*, *Retag in place*. |
+| **Non-MKV Files** | *Skip* | What to do when the library file is not Matroska: *Skip* (record `skipped-container`) or *Remux to MKV then retag* (ffmpeg stream copy into a new `.mkv`, see below). |
 
-Both are on `GET/PUT /api/v3/config/mediamanagement` as `audioTrackRetagEnabled` and
-`audioTrackRetagHardlinkMode` (`skip` / `copyThenRetag` / `retagInPlace`). The confidence
-threshold is the verification feature's *Confidence Threshold*; there is no second one.
+All three are on `GET/PUT /api/v3/config/mediamanagement` as `audioTrackRetagEnabled`,
+`audioTrackRetagHardlinkMode` (`skip` / `copyThenRetag` / `retagInPlace`) and
+`audioTrackRetagNonMkvMode` (`skip` / `remuxToMkv`). The confidence threshold is the
+verification feature's *Confidence Threshold*; there is no second one.
+
 
 ## Behavior
 
@@ -66,8 +76,9 @@ threshold is the verification feature's *Confidence Threshold*; there is no seco
 2. the event is the import of a **new download** (`NewDownload`). Files discovered by
    *Rescan Series*, a refresh, or the existing-file path of a disk scan raise the same event
    with `NewDownload = false` and are ignored; `UpdateMediaInfo` raises nothing;
-3. the library file is a **Matroska** file (`.mkv`). Other containers are never touched. A
-   verified non-MKV file gets `result = skipped-container` so the record says why;
+3. the library file is a **Matroska** file (`.mkv`), or *Non-MKV Files* is set to *Remux to
+   MKV then retag*. With the default *Skip* other containers are never touched and a verified
+   non-MKV file gets `result = skipped-container` so the record says why;
 4. the file has a verification record with at least one track whose detected language, at or
    above the verification threshold, maps to a different language than its tag. Tracks below
    the threshold, tracks with no detection, and tracks whose tag already means the detected
@@ -131,7 +142,61 @@ as *possibly* hardlinked: **Skip** records `skipped-hardlinked` with the reason
 | **Retag in place** | `mkvpropedit` edits the shared bytes directly. | **The seed is modified.** Its Matroska header no longer matches the torrent's piece hashes: the client's next recheck fails on those pieces, the torrent stops seeding (or is flagged as errored/missing pieces) and re-downloads them on a forced recheck. Use only if you do not seed from the library, or accept that outcome. |
 
 A file that is not hardlinked (a plain copy or move) is retagged directly in all three modes;
-the mode only decides the hardlinked case.
+the mode only decides the hardlinked case. **The hardlink mode does not apply to a remux** (next
+section): a remux never edits the source's bytes.
+
+### Non-MKV files: remux
+
+With **Non-MKV Files** = *Remux to MKV then retag*, a mistagged MP4/M4V/AVI file (a verification
+record with at least one mismatched track, exactly the trigger an MKV needs) is converted into a
+Matroska file instead of being skipped. What happens, in order:
+
+1. **Preconditions.** `<stem>.mkv` must not already exist in the season folder, and the folder
+   must have at least the source's size free (the temp file is a full copy of the streams).
+   Either refusal records `failed` without starting ffmpeg.
+2. **One ffmpeg pass, stream copy only.** The bundled `ffmpeg` (`/app/ffmpeg` in the image, the
+   same binary and resolution the verification clip extractor uses) writes
+   `<stem>.krzw-remux.tmp.mkv` in the same directory:
+   `-i <source> -map 0:<i> ... -c copy -metadata:s:a:N language=<ISO 639-2> ... -f matroska`.
+   **Nothing is re-encoded**; the video, audio and subtitle packets are copied as they are, so
+   the result is the same quality and roughly the same size, and the run is bound by disk
+   speed (a 20 GB file takes about as long as copying it). The corrected language of each
+   mismatched audio track is written in the same call, so no `mkvpropedit` pass follows.
+   Every video, audio, subtitle and attachment stream is mapped explicitly from the ffprobe
+   layout `MediaInfo` already holds; only streams Matroska cannot carry are left out and logged
+   (`Info`, "cannot be carried into Matroska"): MP4 timed text (`mov_text`), `eia_608` captions,
+   DivX `xsub`, teletext and timecode/data streams. **Audio and video streams are never
+   dropped**: if ffmpeg cannot put one into Matroska (an exotic AVI audio codec, say) the remux
+   fails and the record carries the last lines of ffmpeg's stderr. When the stream layout is
+   unavailable, `-map 0 -ignore_unknown` is used and ffmpeg decides.
+3. **Timeout.** 10 × the verification feature's *Timeout* (default 120 s, so 20 minutes), never
+   below 10 minutes; ffmpeg is killed past it and the file recorded `failed`.
+4. **Verification with ffprobe.** The temp file must probe, have exactly as many streams as
+   were mapped, a duration within 1 s of the source's, and report the requested language on
+   every edited track. Any mismatch deletes the temp file and records `failed`; the source is
+   untouched.
+5. **Swap.** Permissions are copied from the source, the source is parked as
+   `<name>.<ext>.krzw-remux.bak`, the temp file is moved to `<stem>.mkv`, the backup is deleted.
+   If the move fails the original is restored from the backup.
+6. **Record update.** `RelativePath`/`Path` (new extension), `Size`, `MediaInfo` (fresh probe)
+   and `Languages` (same reconciliation as an in-place retag) are updated, and the retag
+   record is written with `result = done`, `remuxed = true`, `originalContainer = "<ext>"`.
+7. **Rename events.** Sonarr raises the same `EpisodeFileRenamedEvent` + `SeriesRenamedEvent`
+   the renamer raises, so history, notifications (*On Rename*: webhook, cross-seed, Plex /
+   Jellyfin / Emby library updates), extras and metadata files see the new path.
+
+**Hardlinks.** The remux writes a brand-new file with link count 1 by construction and only
+ever removes the library's *own* directory entry (the parked original). A source that is a
+hardlink of a seeding torrent keeps its bytes under the client's path whatever *Hardlinked
+Files* says, so a hardlinked MP4 is remuxed even in *Skip* mode. What you lose is the shared
+storage for that file: after the remux the library holds its own `.mkv` and the client its
+original `.mp4`.
+
+**What it does not do.** No re-encode, no bitrate or resolution change, no subtitle format
+conversion (`mov_text` is dropped rather than turned into SRT), no chapter or cover art
+handling beyond what ffmpeg's Matroska muxer carries by itself, no remux of MKV files, and no
+remux when there is nothing to retag (a verified, correctly tagged MP4 is left alone).
+
 
 ### Record
 
@@ -145,9 +210,15 @@ Migration 219 adds `EpisodeFiles.AudioTrackRetag` (JSON), exposed read-only on
   "tracks": [ { "streamIndex": 0, "from": "eng", "to": "fre" } ],
   "skippedTracks": [],
   "at": "2026-09-10T14:03:11Z",
-  "error": null
+  "error": null,
+  "remuxed": false,
+  "originalContainer": null
 }
 ```
+
+`remuxed` / `originalContainer` (`"mp4"`, `"avi"`, ...) are set when the file went through the
+[remux path](#non-mkv-files-remux); for an in-place `mkvpropedit` edit they are `false` / `null`.
+
 
 `result` is one of `done`, `skipped-hardlinked`, `skipped-container`, `failed`. Only `done`
 is final: a `skipped-*` or `failed` file is retried by the manual command (and nothing else —
@@ -155,7 +226,8 @@ imports happen once). `tracks` always lists the planned edits, written only when
 `skipped-hardlinked` record says what a later manual retag would change). `skippedTracks` is a
 fork addition to the record shape: mismatched tracks that were left alone, with the reason (a
 detected language Sonarr does not know, or one without an ISO 639-2 code). `error` carries the
-`mkvpropedit` output, the free-space refusal, `link count unavailable`, or "file not found".
+`mkvpropedit` output, the free-space refusal, `link count unavailable`, "file not found", or for
+a remux the ffmpeg stderr tail / ffprobe verification mismatch prefixed with `remux failed:`.
 
 ### Manual retag
 
@@ -164,7 +236,8 @@ POST /api/v3/command
 { "name": "RetagAudioTracks", "episodeFileId": 123 }
 ```
 
-Applies exactly the same rules to one file: container check, threshold, hardlink mode,
+Applies exactly the same rules to one file: container check (and the *Non-MKV Files* mode: a
+manual retag of an MP4 remuxes it when the setting says so), threshold, hardlink mode,
 idempotence. It is meant for files imported before the feature existed, files skipped because
 the mode was *Skip* while they were seeding, and files whose last attempt failed. It runs even
 when *Retag Audio Tracks* is off (it is an explicit request), but it still respects
@@ -174,11 +247,14 @@ the hardlink modes exist to prevent.
 
 ## Guarantees and limits
 
-- **Never rewrites streams.** Header-only edits; the audio/video data is byte-for-byte what was
-  imported. If the header has no room for the new element `mkvpropedit` relocates it within the
-  header area; it never touches clusters.
-- **MKV only.** MP4/AVI/TS files are never modified; a verified one is recorded
-  `skipped-container` so the UI/API shows why the tag was left alone.
+- **Never re-encodes.** An MKV gets a header-only edit; the audio/video data is byte-for-byte
+  what was imported (if the header has no room for the new element `mkvpropedit` relocates it
+  within the header area; it never touches clusters). A remuxed non-MKV file gets its packets
+  copied into a new container; the streams themselves are unchanged.
+- **MKV only unless you opt in.** With *Non-MKV Files* = *Skip* (default) MP4/AVI/TS files are
+  never modified; a verified one is recorded `skipped-container` so the UI/API shows why the tag
+  was left alone. *Remux to MKV then retag* rewrites the whole file and changes its extension;
+  the original is only removed after the new file passed the ffprobe checks.
 - **Never on rescan.** Only the import of a download triggers it; *Rescan Series*, *Refresh*
   and media-info refreshes neither retag nor overwrite the record.
 - **Once per file.** `done` is final; there is no drift correction if something retags the file
@@ -188,7 +264,8 @@ the hardlink modes exist to prevent.
   retag runs after the file is in the library and only realigns tags with what verification
   already decided.
 - **Blocking.** The edit runs inside the import; for *Copy then retag* on a large hardlinked file
-  the copy takes as long as a copy import would.
+  the copy takes as long as a copy import would, and a remux takes about as long as copying the
+  file (stream copy at disk speed).
 
 ## Related
 
@@ -245,7 +322,8 @@ Branch `feature/audio-track-retag-main`, stacked on
 `ReadAllBytes` disk-provider member; the bare `v4.0.19.2979` tag cannot compile it), merged
 into `personal/all-features-main`. Key files: `MediaFiles/AudioTags/*`
 (`AudioTrackRetagService` — event handler + command executor, `AudioTrackRetagPlanner` — pure
-trigger/mapping logic, `MkvPropEditTrackTagger`, `AudioTrackRetag` record,
+trigger/mapping logic, `MkvPropEditTrackTagger`, `FfmpegMatroskaRemuxer` — stream map,
+argument list and ffmpeg run for the non-MKV path, `AudioTrackRetag` record,
 `RetagAudioTracksCommand`), `Datastore/Migration/219_add_audio_track_retag_to_episode_files.cs`,
 `IDiskProvider.GetHardLinkCount` (+ Mono `stat` implementation), `LocalEpisode.TransferMode`
 (set by `EpisodeFileMovingService`), `Configuration/ConfigService.cs`,
