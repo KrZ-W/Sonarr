@@ -96,6 +96,8 @@ with details. This fork does not submit changes upstream.
 | [Sonarr#5598](https://github.com/Sonarr/Sonarr/issues/5598) CF comparison release vs file | open, discussion | [VFQ Audio-Title Detection](docs/features/vfq-audio-title-detection.md) | Related discussion |
 | [Sonarr#269](https://github.com/Sonarr/Sonarr/issues/269) TVDB data in other languages | open | [Regional Language Parsing](docs/features/regional-language-parsing.md) | Narrow fix under that umbrella |
 | [Radarr#8444](https://github.com/Radarr/Radarr/issues/8444) deleted-event flood on failed imports | open (Radarr) | [Atomic Upgrade Imports](docs/features/atomic-upgrade-imports.md) | Same flaw existed in Sonarr; fixed here |
+| [Sonarr#8453](https://github.com/Sonarr/Sonarr/issues/8453) external audio language provider / AI-assisted tagging | not planned (2026) | [Audio Language Verification](docs/features/audio-language-verification.md) | Implemented natively (Whisper detection at import; retag is a planned follow-up) |
+| [Sonarr#7523](https://github.com/Sonarr/Sonarr/issues/7523), [#5225](https://github.com/Sonarr/Sonarr/issues/5225) reject / fail wrong-language downloads | not planned / closed | [Audio Language Verification](docs/features/audio-language-verification.md), [Import-time Enforcement](docs/features/import-time-enforcement.md) | Rejected at import here, on verified audio |
 
 ## Relationship to upstream
 
