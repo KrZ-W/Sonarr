@@ -228,6 +228,16 @@ State as of 2026-09-10 (this fork does not submit changes upstream):
   Multi-Language but is actually not* after an external tool (Tdarr) removed audio tracks
   (closed, logs needed). Same stale-MediaInfo shape as #7584; adjacent only.
 
+- [Radarr#6072](https://github.com/Radarr/Radarr/issues/6072) — *Feature Request for
+  retagging already downloaded files* (open since 2021, still requested in 2025). Asks Radarr
+  to write tags into media files the way Lidarr does, aimed at the container title release
+  groups embed. Adjacent: this feature is the fork's only case of the *arr editing a file
+  header, limited to the audio-track language element; container titles are not touched.
+- [Radarr#1976](https://github.com/Radarr/Radarr/issues/1976) — *wipe file details/properties
+  when moving files into their destination* (closed 2017, Plex-side workaround given). The
+  same motivation as this feature: players trust what is embedded in the file over the
+  *arr's metadata. Adjacent, not fixed here (only the language tag is rewritten).
+
 ## Source
 
 Branch `feature/audio-track-retag-main`, stacked on
