@@ -11,7 +11,7 @@ fork; this document describes the Sonarr versions specifically.
 - **Upstream base:** Sonarr `4.0.19.2979`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.21`
+- **Current fork version:** `v4.0.19.2979+krzw.22`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
@@ -28,7 +28,7 @@ fork; this document describes the Sonarr versions specifically.
 | **User Scene Mappings** | Bulk-import missing FR/QC series titles as `Type=User` scene mappings (refresh-proof by design); JSON import endpoint | [features/user-scene-mappings.md](docs/features/user-scene-mappings.md) |
 | **IMDb Title Provider** | Downloads IMDb's alternative-title dataset on a schedule and feeds the missing French/Quebec series titles into the user scene-mapping importer automatically (new series within seconds); no external scripts | [features/imdb-title-provider.md](docs/features/imdb-title-provider.md) |
 | **Audio Language Verification** | Listens to a short clip of suspicious audio tracks with a self-hosted Whisper server at import, so a French track mistagged `eng`/`und` imports as French (and a truly non-French pack is rejected with an "Audio verified" reason); one probe per track layout per season pack; stores the per-track outcome on the file, never modifies files | [features/audio-language-verification.md](docs/features/audio-language-verification.md) |
-| **Audio Track Retag** | After import, rewrites the language tag of the MKV audio tracks verification found mistagged (`mkvpropedit`, header-only, streams never rewritten) so Plex/Jellyfin/Bazarr agree; per-episode in season packs; hardlink-aware (*Skip* / *Copy then retag* / *Retag in place*), outcome stored on the file, manual per-file command | [features/audio-track-retag.md](docs/features/audio-track-retag.md) |
+| **Audio Track Retag** | After import, rewrites the language tag of the MKV audio tracks verification found mistagged (`mkvpropedit`, header-only, streams never rewritten) so Plex/Jellyfin/Bazarr agree; per-episode in season packs; hardlink-aware (*Skip* / *Copy then retag* / *Retag in place*); non-MKV files skipped or, opt-in, stream-copied by ffmpeg into a new `.mkv` with the tags written in the same pass (no re-encode, verified with ffprobe, rename events raised); outcome stored on the file, manual per-file command | [features/audio-track-retag.md](docs/features/audio-track-retag.md) |
 | **Completed Download Handling** | Make the CDH run interval configurable + log per-run duration, so a slow CDH stops starving manual imports; stuck `ImportPending`/`ImportBlocked` items self-heal back to `Downloading` | [features/completed-download-handling.md](docs/features/completed-download-handling.md) |
 | **Regional Language Parsing** | Adds `en-CA` / `fr-CA` parsing entries so regional tags in filenames resolve correctly | [features/regional-language-parsing.md](docs/features/regional-language-parsing.md) |
 | **Configurable Indexer Cooldown** | Make the indexer back-off/escalation schedule editable | [features/configurable-indexer-cooldown.md](docs/features/configurable-indexer-cooldown.md) |
@@ -60,8 +60,8 @@ The `+` is valid in git tags / GitHub releases / SemVer but **not** in container
 tags, so the Docker tag replaces `+` with `-`:
 
 ```
-git tag      v4.0.19.2979+krzw.21
-docker image ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.21
+git tag      v4.0.19.2979+krzw.22
+docker image ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.22
 ```
 
 See [docs/releasing.md](docs/releasing.md) for how to cut a release.
@@ -74,7 +74,7 @@ See [docs/releasing.md](docs/releasing.md) for how to cut a release.
 
 ```bash
 # Pinned to a release (recommended for stability)
-docker pull ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.21
+docker pull ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.22
 
 # Bleeding edge — tip of personal/all-features-main
 docker pull ghcr.io/krz-w/sonarr:latest

@@ -176,7 +176,18 @@ curl -s -X POST http://sonarr:8989/api/v3/command -H "X-Api-Key: $KEY" \
 It applies the same rules (MKV only, verification threshold, hardlink mode) to that one
 file. A file whose record says `done` is never retagged twice; *Rescan Series* never retags.
 
-> Only Matroska files can be edited; MP4/AVI files are left alone (record `skipped-container`).
+> Only Matroska files can be edited in place. By default MP4/M4V/AVI files are left alone
+> (record `skipped-container`). If you want those fixed too, set **Non-MKV Files** to
+> *Remux to MKV then retag*: Sonarr stream-copies the file with the bundled `ffmpeg` into a new
+> `.mkv` next to it (no re-encode, same quality, about as long as copying the file), writes the
+> corrected tags in the same pass, checks the result with `ffprobe` (stream count, duration,
+> tags), then swaps it in — the file's extension changes to `.mkv` and the episode file record,
+> size and media info follow; notifications and library updates get the same rename events a
+> manual rename raises. The original is only removed after the checks pass; on any failure it is
+> left untouched and the record says `failed` with ffmpeg's last lines. A hardlinked MP4 is
+> remuxed whatever *Hardlinked Files* says: the new `.mkv` is a separate file and the seed keeps
+> its bytes (you lose the shared storage for that file). Subtitle streams Matroska cannot carry
+> (MP4 `mov_text`) are dropped and logged; audio and video are never dropped.
 
 > Full reference: [Audio Track Retag](features/audio-track-retag.md).
 
@@ -293,7 +304,7 @@ an IMDb id are covered.
 ```yaml
 services:
   sonarr:
-    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.21   # pin to a release
+    image: ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.22   # pin to a release
     container_name: sonarr
     environment:
       - PUID=1000
