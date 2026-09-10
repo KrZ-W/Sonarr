@@ -13,6 +13,9 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
         public List<AudioTrackRetagTrack> Edits { get; set; } = new List<AudioTrackRetagTrack>();
         public List<AudioTrackRetagSkippedTrack> SkippedTracks { get; set; } = new List<AudioTrackRetagSkippedTrack>();
 
+        /// <summary>The file is not Matroska and the edits can only be written by remuxing it into a new .mkv (see <see cref="AudioTrackRetagNonMkvMode.RemuxToMkv"/>).</summary>
+        public bool Remux { get; set; }
+
         public bool ShouldRetag => SkipReason == AudioTrackRetagSkipReason.None && Edits.Any();
 
         public static AudioTrackRetagPlan Skip(AudioTrackRetagSkipReason reason)

@@ -107,6 +107,30 @@ namespace NzbDrone.Core.Test.MediaFiles.AudioTags
         }
 
         [Test]
+        public void should_plan_a_remux_for_non_mkv_when_asked()
+        {
+            var plan = AudioTrackRetagPlanner.Plan(File(Track(0, "eng", "fr")), "/tv/Series/Season 01/Series - S01E01.mp4", Threshold, remuxNonMkv: true);
+
+            plan.SkipReason.Should().Be(AudioTrackRetagSkipReason.None);
+            plan.Remux.Should().BeTrue();
+            plan.Edits.Should().HaveCount(1);
+            plan.Edits[0].To.Should().Be("fre");
+        }
+
+        [Test]
+        public void should_not_flag_remux_for_mkv()
+        {
+            AudioTrackRetagPlanner.Plan(File(Track(0, "eng", "fr")), Mkv, Threshold, remuxNonMkv: true).Remux.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_not_plan_a_remux_when_there_is_nothing_to_change()
+        {
+            AudioTrackRetagPlanner.Plan(File(Track(0, "fre", "fr")), "/tv/Series/Season 01/Series - S01E01.mp4", Threshold, remuxNonMkv: true).SkipReason.Should().Be(AudioTrackRetagSkipReason.NoMismatch);
+            AudioTrackRetagPlanner.Plan(File(), "/tv/Series/Season 01/Series - S01E01.mp4", Threshold, remuxNonMkv: true).SkipReason.Should().Be(AudioTrackRetagSkipReason.NoVerificationRecord);
+        }
+
+        [Test]
         public void should_accept_upper_case_extension()
         {
             AudioTrackRetagPlanner.Plan(File(Track(0, "eng", "fr")), "/tv/Series/Season 01/Series - S01E01.MKV", Threshold).ShouldRetag.Should().BeTrue();

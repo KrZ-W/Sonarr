@@ -26,6 +26,12 @@ namespace NzbDrone.Core.MediaFiles.AudioTags
 
         public string Error { get; set; }
 
+        /// <summary>True when the file was remuxed into a new Matroska file to get its tags written (non-MKV source, "Non-MKV files" = Remux to MKV).</summary>
+        public bool Remuxed { get; set; }
+
+        /// <summary>Extension of the container the file had before the remux, without the dot ("mp4", "avi"); null when not remuxed.</summary>
+        public string OriginalContainer { get; set; }
+
         public bool IsDone => Result == AudioTrackRetagResult.Done;
     }
 
