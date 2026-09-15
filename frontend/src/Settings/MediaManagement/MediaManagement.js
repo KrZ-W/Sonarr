@@ -488,6 +488,24 @@ class MediaManagement extends Component {
                       </FormGroup> : null
                   }
 
+                  {/* krzw(grabbed-release-title) */}
+                  <FormGroup
+                    advancedSettings={advancedSettings}
+                    isAdvanced={true}
+                    size={sizes.MEDIUM}
+                  >
+                    <FormLabel>{translate('ScoreFilesByGrabbedReleaseTitle')}</FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="scoreFilesByGrabbedReleaseTitle"
+                      helpText={translate('ScoreFilesByGrabbedReleaseTitleHelpText')}
+                      helpTextWarning={translate('ScoreFilesByGrabbedReleaseTitleHelpTextWarning')}
+                      onChange={onInputChange}
+                      {...settings.scoreFilesByGrabbedReleaseTitle}
+                    />
+                  </FormGroup>
+
                   <FormGroup
                     advancedSettings={advancedSettings}
                     isAdvanced={true}

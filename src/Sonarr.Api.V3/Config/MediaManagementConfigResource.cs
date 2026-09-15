@@ -37,6 +37,9 @@ namespace Sonarr.Api.V3.Config
         public SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         public double SeasonPackUpgradeThreshold { get; set; }
 
+        // krzw(grabbed-release-title)
+        public bool ScoreFilesByGrabbedReleaseTitle { get; set; }
+
         // krzw(audio-language-verification)
         public bool AudioLanguageVerificationEnabled { get; set; }
         public string AudioLanguageVerificationEndpoint { get; set; }
@@ -85,6 +88,9 @@ namespace Sonarr.Api.V3.Config
                 // krzw(season-pack)
                 SeasonPackUpgrade = model.SeasonPackUpgrade,
                 SeasonPackUpgradeThreshold = model.SeasonPackUpgradeThreshold,
+
+                // krzw(grabbed-release-title)
+                ScoreFilesByGrabbedReleaseTitle = model.ScoreFilesByGrabbedReleaseTitle,
 
                 // krzw(audio-language-verification)
                 AudioLanguageVerificationEnabled = model.AudioLanguageVerificationEnabled,

@@ -64,6 +64,9 @@ namespace NzbDrone.Core.Configuration
         SeasonPackUpgradeType SeasonPackUpgrade { get; set; }
         double SeasonPackUpgradeThreshold { get; set; }
 
+        // krzw(grabbed-release-title)
+        bool ScoreFilesByGrabbedReleaseTitle { get; set; }
+
         // Permissions (Media Management)
         bool SetPermissionsLinux { get; set; }
         string ChmodFolder { get; set; }
