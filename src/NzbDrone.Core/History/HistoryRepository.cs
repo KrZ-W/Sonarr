@@ -19,6 +19,7 @@ namespace NzbDrone.Core.History
         List<EpisodeHistory> FindDownloadHistory(int idSeriesId, QualityModel quality);
         void DeleteForSeries(List<int> seriesIds);
         List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType);
+        List<EpisodeHistory> GetByEventType(EpisodeHistoryEventType eventType);  // krzw(grabbed-release-title)
         PagingSpec<EpisodeHistory> GetPaged(PagingSpec<EpisodeHistory> pagingSpec, int[] languages, int[] qualities);
     }
 
@@ -100,6 +101,13 @@ namespace NzbDrone.Core.History
         public void DeleteForSeries(List<int> seriesIds)
         {
             Delete(c => seriesIds.Contains(c.SeriesId));
+        }
+
+        // krzw(grabbed-release-title): unjoined bulk read for the backfill; Since() joins Series and
+        // Episode, which is far too heavy for a whole-history scan.
+        public List<EpisodeHistory> GetByEventType(EpisodeHistoryEventType eventType)
+        {
+            return Query(h => h.EventType == eventType);
         }
 
         public List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType)
