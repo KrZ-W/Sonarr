@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             };
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat>());
         }
 
@@ -81,7 +81,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_upgrade_when_new_release_has_priority_format_and_existing_does_not()
         {
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat>());
 
             _parseResult.CustomFormats = new List<CustomFormat> { _priorityFormat };
@@ -95,7 +95,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResult.Series.QualityProfile.Value.UpgradeAllowed = false;
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat>());
 
             _parseResult.CustomFormats = new List<CustomFormat> { _priorityFormat };
@@ -107,7 +107,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void should_not_upgrade_when_priority_format_score_is_equal()
         {
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat> { _priorityFormat });
 
             _parseResult.CustomFormats = new List<CustomFormat> { _priorityFormat };
@@ -125,7 +125,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             };
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat> { _priorityFormat });
 
             _parseResult.CustomFormats = new List<CustomFormat> { _regularFormat };
@@ -145,7 +145,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             };
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(x => x.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                .Setup(x => x.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                 .Returns(new List<CustomFormat> { _priorityFormat });
 
             _parseResult.CustomFormats = new List<CustomFormat> { higherPriorityFormat };

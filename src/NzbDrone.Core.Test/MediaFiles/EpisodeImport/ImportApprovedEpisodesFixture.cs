@@ -445,5 +445,42 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<EpisodeFile>(c => c.AudioLanguageVerification == null)), Times.Once());
         }
+
+        // krzw(grabbed-release-title)
+        [Test]
+        public void should_store_the_grabbed_release_title_with_new_downloads()
+        {
+            _approvedDecisions.First().LocalEpisode.GrabbedReleaseTitle = "Series.Title.S01E01.MULTi.1080p.WEB.H264-GROUP";
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Verify(v => v.UpgradeEpisodeFile(It.Is<EpisodeFile>(e => e.GrabbedReleaseTitle == "Series.Title.S01E01.MULTi.1080p.WEB.H264-GROUP"), _approvedDecisions.First().LocalEpisode, false),
+                      Times.Once());
+        }
+
+        [Test]
+        public void should_sanitize_the_grabbed_release_title_before_storing_it()
+        {
+            _approvedDecisions.First().LocalEpisode.GrabbedReleaseTitle = "Series.Title.S01E01-GROUP\r\n\t\r\n\tTaille: 4 GB Seeders: 27";
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Verify(v => v.UpgradeEpisodeFile(It.Is<EpisodeFile>(e => e.GrabbedReleaseTitle == "Series.Title.S01E01-GROUP"), _approvedDecisions.First().LocalEpisode, false),
+                      Times.Once());
+        }
+
+        [Test]
+        public void should_leave_the_grabbed_release_title_null_for_an_import_without_a_grab()
+        {
+            _approvedDecisions.First().LocalEpisode.GrabbedReleaseTitle = null;
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Verify(v => v.UpgradeEpisodeFile(It.Is<EpisodeFile>(e => e.GrabbedReleaseTitle == null), _approvedDecisions.First().LocalEpisode, false),
+                      Times.Once());
+        }
     }
 }
