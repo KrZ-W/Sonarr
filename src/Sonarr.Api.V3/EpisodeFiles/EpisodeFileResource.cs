@@ -48,7 +48,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
             }
 
             model.Series = series;
-            var customFormats = formatCalculationService?.ParseCustomFormat(model, model.Series);
+            var customFormats = formatCalculationService?.ParseCustomFormatForScoring(model, model.Series);  // krzw(grabbed-release-title)
             var customFormatScore = series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats) ?? 0;
 
             return new EpisodeFileResource

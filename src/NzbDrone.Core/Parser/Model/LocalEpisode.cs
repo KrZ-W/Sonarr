@@ -15,6 +15,8 @@ namespace NzbDrone.Core.Parser.Model
 {
     public class LocalEpisode
     {
+        private List<CustomFormat> _scoringCustomFormats;  // krzw(grabbed-release-title)
+
         public LocalEpisode()
         {
             Episodes = new List<Episode>();
@@ -44,6 +46,18 @@ namespace NzbDrone.Core.Parser.Model
         public bool OtherVideoFiles { get; set; }
         public List<CustomFormat> CustomFormats { get; set; }
         public int CustomFormatScore { get; set; }
+
+        // krzw(grabbed-release-title): sanitised release title of the grab this file came from, when known
+        public string GrabbedReleaseTitle { get; set; }
+
+        // krzw(grabbed-release-title): formats used for SCORING only. CustomFormats stays on the legacy
+        // ladder because it also feeds the {Custom Formats} naming token via EpisodeFileMovingService.
+        public List<CustomFormat> ScoringCustomFormats
+        {
+            get => _scoringCustomFormats ?? CustomFormats;
+            set => _scoringCustomFormats = value;
+        }
+
         public GrabbedReleaseInfo Release { get; set; }
         public bool ScriptImported { get; set; }
         public string FileNameBeforeRename { get; set; }

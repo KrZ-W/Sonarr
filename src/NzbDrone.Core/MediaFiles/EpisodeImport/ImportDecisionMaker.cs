@@ -159,7 +159,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                     }
 
                     localEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
-                    localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.CustomFormats) ?? 0;
+
+                    // krzw(grabbed-release-title): scoring ladder for the score, naming ladder for CustomFormats
+                    localEpisode.ScoringCustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
+                    localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.ScoringCustomFormats) ?? 0;
 
                     decision = GetDecision(localEpisode, downloadClientItem);
                 }

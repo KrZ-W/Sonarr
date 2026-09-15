@@ -36,7 +36,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     continue;
                 }
 
-                var fileCustomFormats = _formatService.ParseCustomFormat(file, subject.Series);
+                // krzw(grabbed-release-title): score the file under its best release title, never a worse one
+                var fileCustomFormats = _formatService.ParseCustomFormatForScoring(file, subject.Series);
 
                 _logger.Debug("Comparing file quality with report. Existing file is {0}", file.Quality);
 
