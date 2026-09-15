@@ -2,6 +2,7 @@ using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
+using NzbDrone.Core.MediaFiles.GrabbedReleaseTitles;  // krzw(grabbed-release-title)
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
@@ -34,6 +35,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
             }
 
             localEpisode.Release = new GrabbedReleaseInfo(grabbedHistories);
+
+            // krzw(grabbed-release-title): the title the grab was made under, sanitised once here so
+            // every consumer (scoring, import capture) sees the same value.
+            localEpisode.GrabbedReleaseTitle = GrabbedReleaseTitleSanitizer.Sanitize(localEpisode.Release.Title);
 
             return localEpisode;
         }
