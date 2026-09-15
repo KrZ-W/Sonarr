@@ -10,7 +10,41 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Grabbed Release Title.** The release title a file was grabbed under is now stored on the
+  episode file (`GrabbedReleaseTitle`, migration 220) and exposed read-only on
+  `GET /api/v3/episodefile` as `grabbedReleaseTitle`. It is captured at import from the grab
+  history whenever the import has a tracked download behind it; a manual import with no download
+  id leaves it null. The stored value is sanitised — trackers that put a whole description blob
+  in the title (`...-PopHD\n\t\n\tTaille: 4 GB Seeders: 27 ...`) contribute only their first
+  non-empty line, trimmed, with internal whitespace collapsed.
+- **Optional scoring by the grabbed release title.** New advanced Media Management setting
+  **Score Files by Grabbed Release Title** (`scoreFilesByGrabbedReleaseTitle`, default off). With
+  it on, an existing file's custom formats are evaluated under the grabbed title, the scene name
+  and the original file name as well as the title today's ladder picks, and the best one wins.
+  A candidate only counts if it lowers **neither** the total custom format score **nor** the
+  priority score (Priority Mode compares the priority score before quality, so a plain
+  max-by-total could weaken the file on the axis read first and cause the re-grab this is meant
+  to prevent). Since the incumbent is always a candidate, **neither score can ever decrease**.
+  Everything but the release title — release group, languages, quality, size, indexer flags,
+  release type, audio titles — is frozen across candidates.
+  Applied at the grab-time upgrade decisions (`UpgradeAllowedSpecification`,
+  `UpgradeDiskSpecification`), the import-time upgrade decision, the manual import listing and
+  the episode file API resource. **Naming is deliberately excluded**: `FileNameBuilder` keeps
+  using the old overload, so the `{Custom Formats}` token, `{Scene Name}`, `{Original Title}`,
+  the rename preview and webhooks are all unchanged.
+  Note that a higher file score can **block upgrades that were previously allowed** — that is
+  the intended effect, and turning the setting back off restores the old behaviour.
+- **`BackfillGrabbedReleaseTitles` command.** Manual, never scheduled, idempotent. Fills the
+  column for files imported before the feature existed. Matching is oracle-first: the
+  `downloadFolderImported` history row carries the imported file's id in `Data["fileId"]`, which
+  is an exact link; when such a row exists but has no download id the file's real import was a
+  manual import and the file is **skipped** rather than matched by time (on a real library that
+  removes 38 of 39 measured misattributions). Only files with no `fileId`-bearing row fall back
+  to the closest download-id bearing import within six hours of `DateAdded`. Download ids are
+  compared case-insensitively. Logs `scanned / set / no-import-event / no-download-id / no-grab /
+  unchanged`.
 
 ## [v4.0.19.2979+krzw.22] — based on Sonarr 4.0.19.2979
 
