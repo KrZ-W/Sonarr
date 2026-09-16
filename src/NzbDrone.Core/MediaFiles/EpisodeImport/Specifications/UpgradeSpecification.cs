@@ -41,7 +41,9 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
                 }
 
                 // krzw(cf-priority): import-side mirror of UpgradableSpecification; CF parse hoisted from below
-                var currentFormats = _formatService.ParseCustomFormat(episodeFile);
+                // krzw(grabbed-release-title): both sides scored from the scoring ladder, not the naming one
+                // (localEpisode.CustomFormats IS the scoring ladder; NamingCustomFormats is the carve-out)
+                var currentFormats = _formatService.ParseCustomFormatForScoring(episodeFile);
                 var currentPriorityScore = qualityProfile.CalculatePriorityFormatScore(currentFormats);
                 var newPriorityScore = qualityProfile.CalculatePriorityFormatScore(localEpisode.CustomFormats);
                 var currentFormatScore = qualityProfile.CalculateCustomFormatScore(currentFormats);

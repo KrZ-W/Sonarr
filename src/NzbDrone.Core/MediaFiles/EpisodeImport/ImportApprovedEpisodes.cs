@@ -10,6 +10,7 @@ using NzbDrone.Core.Extras;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.MediaFiles.GrabbedReleaseTitles;  // krzw(grabbed-release-title)
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
@@ -156,6 +157,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                     if (newDownload)
                     {
                         episodeFile.SceneName = localEpisode.SceneName;
+
+                        // krzw(grabbed-release-title): only set when the import has a grab behind it;
+                        // a manual import with no download id leaves it null.
+                        episodeFile.GrabbedReleaseTitle = GrabbedReleaseTitleSanitizer.Sanitize(localEpisode.GrabbedReleaseTitle);
                         episodeFile.OriginalFilePath = GetOriginalFilePath(downloadClientItem, localEpisode);
 
                         // krzw(atomic-upgrade)

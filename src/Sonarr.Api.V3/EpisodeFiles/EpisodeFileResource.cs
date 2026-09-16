@@ -23,6 +23,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
         public long Size { get; set; }
         public DateTime DateAdded { get; set; }
         public string SceneName { get; set; }
+        public string GrabbedReleaseTitle { get; set; }  // krzw(grabbed-release-title): read-only
         public string ReleaseGroup { get; set; }
         public List<Language> Languages { get; set; }
         public QualityModel Quality { get; set; }
@@ -47,7 +48,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
             }
 
             model.Series = series;
-            var customFormats = formatCalculationService?.ParseCustomFormat(model, model.Series);
+            var customFormats = formatCalculationService?.ParseCustomFormatForScoring(model, model.Series);  // krzw(grabbed-release-title)
             var customFormatScore = series?.QualityProfile?.Value?.CalculateCustomFormatScore(customFormats) ?? 0;
 
             return new EpisodeFileResource
@@ -61,6 +62,7 @@ namespace Sonarr.Api.V3.EpisodeFiles
                 Size = model.Size,
                 DateAdded = model.DateAdded,
                 SceneName = model.SceneName,
+                GrabbedReleaseTitle = model.GrabbedReleaseTitle,  // krzw(grabbed-release-title)
                 ReleaseGroup = model.ReleaseGroup,
                 Languages = model.Languages,
                 Quality = model.Quality,

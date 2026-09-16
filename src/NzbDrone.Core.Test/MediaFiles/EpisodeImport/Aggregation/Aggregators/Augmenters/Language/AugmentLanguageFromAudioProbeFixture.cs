@@ -11,6 +11,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augmenters.Language;
+using NzbDrone.Core.MediaFiles.EpisodeImport.Specifications;  // krzw(grabbed-release-title)
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles;
@@ -73,7 +74,10 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
 
             Mocker.GetMock<IAudioTrackLayoutReader>().Setup(r => r.Read(It.IsAny<MediaInfoModel>())).Returns(() => _tracks);
             Mocker.GetMock<IHistoryService>().Setup(h => h.FindByDownloadId(It.IsAny<string>())).Returns(new List<EpisodeHistory>());
-            Mocker.GetMock<ICustomFormatCalculationService>().Setup(c => c.ParseCustomFormat(It.IsAny<LocalEpisode>())).Returns(new List<CustomFormat>());
+
+            // krzw(grabbed-release-title): the predictor mirrors MinimumCustomFormatScoreSpecification, which reads
+            // LocalEpisode.CustomFormatScore — computed from the SCORING ladder — so it must mock the scoring overload.
+            Mocker.GetMock<ICustomFormatCalculationService>().Setup(c => c.ParseCustomFormatForScoring(It.IsAny<LocalEpisode>())).Returns(new List<CustomFormat>());
 
             Mocker.SetConstant<IAudioLanguageProbeCache>(new AudioLanguageProbeCache());
         }
@@ -286,13 +290,46 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
         {
             _localEpisode.FileEpisodeInfo.Languages = new List<Core.Languages.Language>();
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(c => c.ParseCustomFormat(It.IsAny<LocalEpisode>()))
+                  .Setup(c => c.ParseCustomFormatForScoring(It.IsAny<LocalEpisode>()))
                   .Returns(new List<CustomFormat> { _series.QualityProfile.Value.FormatItems[0].Format });
 
             Subject.AugmentLanguage(_localEpisode, _downloadClientItem).Should().BeNull();
 
             VerifyProbeCount(0);
             _localEpisode.Languages.Should().BeEmpty();
+        }
+
+        // krzw(grabbed-release-title)
+        [Test]
+        public void should_not_probe_when_the_grabbed_release_title_raises_the_score_above_the_minimum()
+        {
+            _localEpisode.FileEpisodeInfo.Languages = new List<Core.Languages.Language>();
+            _localEpisode.GrabbedReleaseTitle = "Series.S01E01.FRENCH.1080p-GRP";
+
+            var frenchFormat = _series.QualityProfile.Value.FormatItems[0].Format;
+
+            // The legacy ladder still finds nothing (score 0, below the minimum of 10); the scoring ladder picks the
+            // grabbed title up and reaches 100. The predictor must follow the scoring ladder, like the spec does.
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                  .Setup(c => c.ParseCustomFormat(It.IsAny<LocalEpisode>()))
+                  .Returns(new List<CustomFormat>());
+            Mocker.GetMock<ICustomFormatCalculationService>()
+                  .Setup(c => c.ParseCustomFormatForScoring(It.IsAny<LocalEpisode>()))
+                  .Returns(new List<CustomFormat> { frenchFormat });
+
+            Subject.AugmentLanguage(_localEpisode, _downloadClientItem).Should().BeNull();
+
+            VerifyProbeCount(0);
+
+            // ...and the spec the predictor mirrors agrees: the file is accepted, so no probe was warranted.
+            _localEpisode.CustomFormats = new List<CustomFormat> { frenchFormat };
+            _localEpisode.CustomFormatScore = _series.QualityProfile.Value.CalculateCustomFormatScore(_localEpisode.CustomFormats);
+            _localEpisode.CustomFormatScore.Should().BeGreaterOrEqualTo(_series.QualityProfile.Value.MinFormatScore);
+
+            new MinimumCustomFormatScoreSpecification(TestLogger)
+                .IsSatisfiedBy(_localEpisode, _downloadClientItem)
+                .Accepted
+                .Should().BeTrue();
         }
 
         [Test]

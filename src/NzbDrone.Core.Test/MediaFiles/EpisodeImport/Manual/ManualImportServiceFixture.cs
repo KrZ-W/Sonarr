@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Manual
                   .Returns(new List<Episode>());
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(s => s.ParseCustomFormat(It.IsAny<EpisodeFile>(), It.IsAny<Series>()))
+                  .Setup(s => s.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>(), It.IsAny<Series>()))
                   .Returns(new List<CustomFormat>());
         }
 

@@ -22,6 +22,7 @@ namespace NzbDrone.Core.MediaFiles
         public DateTime DateAdded { get; set; }
         public string OriginalFilePath { get; set; }
         public string SceneName { get; set; }
+        public string GrabbedReleaseTitle { get; set; }  // krzw(grabbed-release-title): sanitised SourceTitle of the grab this file came from
         public string ReleaseGroup { get; set; }
         public string ReleaseHash { get; set; }
         public QualityModel Quality { get; set; }
