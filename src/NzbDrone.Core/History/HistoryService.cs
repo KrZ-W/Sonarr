@@ -27,6 +27,7 @@ namespace NzbDrone.Core.History
         List<EpisodeHistory> FindByDownloadId(string downloadId);
         string FindDownloadId(EpisodeImportedEvent trackedDownload);
         List<EpisodeHistory> Since(DateTime date, EpisodeHistoryEventType? eventType);
+        List<EpisodeHistory> GetByEventType(EpisodeHistoryEventType eventType);  // krzw(grabbed-release-title)
     }
 
     public class HistoryService : IHistoryService,
@@ -70,6 +71,12 @@ namespace NzbDrone.Core.History
         public EpisodeHistory Get(int historyId)
         {
             return _historyRepository.Get(historyId);
+        }
+
+        // krzw(grabbed-release-title)
+        public List<EpisodeHistory> GetByEventType(EpisodeHistoryEventType eventType)
+        {
+            return _historyRepository.GetByEventType(eventType);
         }
 
         public List<EpisodeHistory> GetBySeries(int seriesId, EpisodeHistoryEventType? eventType)

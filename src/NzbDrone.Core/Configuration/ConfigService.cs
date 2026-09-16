@@ -416,6 +416,14 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("SeasonPackUpgradeThreshold", value); }
         }
 
+        // krzw(grabbed-release-title)
+        public bool ScoreFilesByGrabbedReleaseTitle
+        {
+            get { return GetValueBoolean("ScoreFilesByGrabbedReleaseTitle", false); }
+
+            set { SetValue("ScoreFilesByGrabbedReleaseTitle", value); }
+        }
+
         public bool SetPermissionsLinux
         {
             get { return GetValueBoolean("SetPermissionsLinux", false); }

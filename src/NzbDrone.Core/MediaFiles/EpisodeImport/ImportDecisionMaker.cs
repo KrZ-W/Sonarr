@@ -158,7 +158,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                         }
                     }
 
-                    localEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
+                    // krzw(grabbed-release-title): CustomFormats is the scoring ladder (so it always agrees
+                    // with CustomFormatScore); the legacy ladder is kept aside for naming only.
+                    localEpisode.NamingCustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
+                    localEpisode.CustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
                     localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.CustomFormats) ?? 0;
 
                     decision = GetDecision(localEpisode, downloadClientItem);

@@ -266,7 +266,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(s => s.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                  .Setup(s => s.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                   .Returns(new List<CustomFormat>());
 
             Mocker.GetMock<ICustomFormatCalculationService>()
@@ -300,7 +300,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(s => s.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                  .Setup(s => s.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                   .Returns(new List<CustomFormat>());
 
             Mocker.GetMock<ICustomFormatCalculationService>()
@@ -378,7 +378,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(s => s.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                  .Setup(s => s.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                   .Returns(new List<CustomFormat>());
 
             Mocker.GetMock<ICustomFormatCalculationService>()
@@ -411,7 +411,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                   .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                  .Setup(s => s.ParseCustomFormat(It.IsAny<EpisodeFile>()))
+                  .Setup(s => s.ParseCustomFormatForScoring(It.IsAny<EpisodeFile>()))
                   .Returns(new List<CustomFormat>());
 
             Mocker.GetMock<ICustomFormatCalculationService>()
@@ -471,7 +471,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
             _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
@@ -510,7 +510,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
             _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
@@ -549,7 +549,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(episodeFileCustomFormats);
 
             _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);
@@ -589,7 +589,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(new List<CustomFormat>());
 
             _localEpisode.Quality = new QualityModel(Quality.WEBDL1080p);
@@ -626,7 +626,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(new List<CustomFormat> { priorityFormat });
 
             _localEpisode.Quality = new QualityModel(Quality.Bluray2160p);
@@ -666,7 +666,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(new List<CustomFormat> { existingPriorityFormat });
 
             _localEpisode.Quality = new QualityModel(Quality.WEBDL1080p);
@@ -705,7 +705,7 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
                 .Returns(ProperDownloadTypes.DoNotPrefer);
 
             Mocker.GetMock<ICustomFormatCalculationService>()
-                .Setup(s => s.ParseCustomFormat(episodeFile))
+                .Setup(s => s.ParseCustomFormatForScoring(episodeFile))
                 .Returns(new List<CustomFormat> { regularFormat });
 
             _localEpisode.Quality = new QualityModel(Quality.Bluray1080p);

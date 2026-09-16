@@ -66,6 +66,42 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
                   .Returns(true);
         }
 
+        // krzw(grabbed-release-title): naming is the feature's single carve-out. The {Custom Formats} token must be
+        // built from the LEGACY ladder (NamingCustomFormats), never from the scoring ladder that CustomFormats now
+        // holds, so turning the setting on can never rename an existing library.
+        [Test]
+        public void should_build_the_file_path_from_the_naming_custom_formats()
+        {
+            // Distinct ids: CustomFormat compares by id, so two id-0 formats would match each other in Moq.
+            var namingFormats = new List<CustomFormat> { new CustomFormat("Naming") { Id = 1 } };
+            var scoringFormats = new List<CustomFormat> { new CustomFormat("Scoring") { Id = 2 } };
+
+            _localEpisode.CustomFormats = scoringFormats;
+            _localEpisode.NamingCustomFormats = namingFormats;
+
+            Subject.MoveEpisodeFile(_episodeFile, _localEpisode);
+
+            Mocker.GetMock<IBuildFileNames>()
+                  .Verify(s => s.BuildFilePath(It.IsAny<List<Episode>>(), It.IsAny<Series>(), It.IsAny<EpisodeFile>(), It.IsAny<string>(), It.IsAny<NamingConfig>(), namingFormats), Times.Once());
+
+            Mocker.GetMock<IBuildFileNames>()
+                  .Verify(s => s.BuildFilePath(It.IsAny<List<Episode>>(), It.IsAny<Series>(), It.IsAny<EpisodeFile>(), It.IsAny<string>(), It.IsAny<NamingConfig>(), scoringFormats), Times.Never());
+        }
+
+        // krzw(grabbed-release-title)
+        [Test]
+        public void should_fall_back_to_custom_formats_for_naming_when_the_naming_formats_were_never_set()
+        {
+            var formats = new List<CustomFormat> { new CustomFormat("Only") { Id = 3 } };
+
+            _localEpisode.CustomFormats = formats;
+
+            Subject.CopyEpisodeFile(_episodeFile, _localEpisode);
+
+            Mocker.GetMock<IBuildFileNames>()
+                  .Verify(s => s.BuildFilePath(It.IsAny<List<Episode>>(), It.IsAny<Series>(), It.IsAny<EpisodeFile>(), It.IsAny<string>(), It.IsAny<NamingConfig>(), formats), Times.Once());
+        }
+
         [Test]
         public void should_catch_UnauthorizedAccessException_during_folder_inheritance()
         {
