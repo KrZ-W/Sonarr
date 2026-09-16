@@ -82,7 +82,8 @@ namespace NzbDrone.Core.MediaFiles
 
         public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
         {
-            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.CustomFormats);
+            // krzw(grabbed-release-title): naming is the carve-out — the {Custom Formats} token keeps the legacy ladder
+            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.NamingCustomFormats);
 
             EnsureEpisodeFolder(episodeFile, localEpisode, filePath);
 
@@ -93,7 +94,8 @@ namespace NzbDrone.Core.MediaFiles
 
         public EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
         {
-            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.CustomFormats);
+            // krzw(grabbed-release-title): naming is the carve-out — the {Custom Formats} token keeps the legacy ladder
+            var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.NamingCustomFormats);
 
             EnsureEpisodeFolder(episodeFile, localEpisode, filePath);
 

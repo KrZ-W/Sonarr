@@ -42,12 +42,13 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Specifications
 
                 // krzw(cf-priority): import-side mirror of UpgradableSpecification; CF parse hoisted from below
                 // krzw(grabbed-release-title): both sides scored from the scoring ladder, not the naming one
+                // (localEpisode.CustomFormats IS the scoring ladder; NamingCustomFormats is the carve-out)
                 var currentFormats = _formatService.ParseCustomFormatForScoring(episodeFile);
                 var currentPriorityScore = qualityProfile.CalculatePriorityFormatScore(currentFormats);
-                var newPriorityScore = qualityProfile.CalculatePriorityFormatScore(localEpisode.ScoringCustomFormats);
+                var newPriorityScore = qualityProfile.CalculatePriorityFormatScore(localEpisode.CustomFormats);
                 var currentFormatScore = qualityProfile.CalculateCustomFormatScore(currentFormats);
                 var newFormatScore = localEpisode.CustomFormatScore;
-                var newFormats = localEpisode.ScoringCustomFormats;
+                var newFormats = localEpisode.CustomFormats;
 
                 // Priority CFs are compared BEFORE quality, matching grab-side UpgradableSpecification.
                 // A higher priority score wins even if the new file is a quality downgrade.

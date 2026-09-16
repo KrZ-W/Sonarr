@@ -15,7 +15,7 @@ namespace NzbDrone.Core.Parser.Model
 {
     public class LocalEpisode
     {
-        private List<CustomFormat> _scoringCustomFormats;  // krzw(grabbed-release-title)
+        private List<CustomFormat> _namingCustomFormats;  // krzw(grabbed-release-title)
 
         public LocalEpisode()
         {
@@ -44,18 +44,23 @@ namespace NzbDrone.Core.Parser.Model
         public string ReleaseHash { get; set; }
         public string SceneName { get; set; }
         public bool OtherVideoFiles { get; set; }
+
+        // krzw(grabbed-release-title): the SCORING ladder's formats — the list CustomFormatScore is computed from
         public List<CustomFormat> CustomFormats { get; set; }
         public int CustomFormatScore { get; set; }
 
         // krzw(grabbed-release-title): sanitised release title of the grab this file came from, when known
         public string GrabbedReleaseTitle { get; set; }
 
-        // krzw(grabbed-release-title): formats used for SCORING only. CustomFormats stays on the legacy
-        // ladder because it also feeds the {Custom Formats} naming token via EpisodeFileMovingService.
-        public List<CustomFormat> ScoringCustomFormats
+        // krzw(grabbed-release-title): formats used for NAMING only ({Custom Formats} token, via
+        // EpisodeFileMovingService). CustomFormats itself is the scoring ladder, so the format list and
+        // CustomFormatScore reported to webhooks/scripts/history always agree; naming is the sole carve-out,
+        // kept on the legacy ladder so enabling the setting never triggers a library-wide rename.
+        // Falls back to CustomFormats so a LocalEpisode built outside the import pipeline names as before.
+        public List<CustomFormat> NamingCustomFormats
         {
-            get => _scoringCustomFormats ?? CustomFormats;
-            set => _scoringCustomFormats = value;
+            get => _namingCustomFormats ?? CustomFormats;
+            set => _namingCustomFormats = value;
         }
 
         public GrabbedReleaseInfo Release { get; set; }
