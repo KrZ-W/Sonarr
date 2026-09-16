@@ -233,6 +233,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
         }
 
         /// <summary>Mirrors the import-time MinimumCustomFormatScoreSpecification on the tagged languages only.</summary>
+        // krzw(grabbed-release-title): the spec compares LocalEpisode.CustomFormatScore, which is computed from the
+        // SCORING ladder, so the predictor must use ParseCustomFormatForScoring too. With the legacy ladder it
+        // over-predicted rejection (the Pareto rule can only raise the score) and fired a needless Whisper probe
+        // for exactly the files the grabbed-release-title feature rescues.
         private bool WouldBeRejected(LocalEpisode localEpisode, List<Languages.Language> evidence)
         {
             var profile = localEpisode.Series.QualityProfile.Value;
@@ -241,7 +245,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
             try
             {
                 localEpisode.Languages = evidence;
-                var formats = _formatCalculator.ParseCustomFormat(localEpisode);
+                var formats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
                 var score = profile.CalculateCustomFormatScore(formats);
 
                 return score < profile.MinFormatScore;

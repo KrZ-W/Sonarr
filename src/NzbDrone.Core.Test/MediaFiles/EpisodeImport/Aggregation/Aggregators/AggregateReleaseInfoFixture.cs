@@ -6,6 +6,7 @@ using NUnit.Framework;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators;
+using NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augmenters.Language;  // krzw(grabbed-release-title)
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -39,6 +40,14 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators
                           Data = new Dictionary<string, string>()
                       }
                   });
+        }
+
+        // krzw(grabbed-release-title): AggregateLanguage's audio-probe augmenter predicts rejection from the
+        // scoring ladder, which needs GrabbedReleaseTitle. A tie on Order would leave that ordering undefined.
+        [Test]
+        public void should_run_before_the_language_aggregator()
+        {
+            Subject.Order.Should().BeLessThan(new AggregateLanguage(new List<IAugmentLanguage>(), TestLogger).Order);
         }
 
         // krzw(grabbed-release-title)

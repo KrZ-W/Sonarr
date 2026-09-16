@@ -9,7 +9,10 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators
 {
     public class AggregateReleaseInfo : IAggregateLocalEpisode
     {
-        public int Order => 1;
+        // krzw(grabbed-release-title): must run before the Order-1 aggregators — AggregateLanguage's audio-probe
+        // augmenter predicts rejection from GrabbedReleaseTitle, which only this aggregator populates. Nothing here
+        // depends on another aggregator's output (only the download client item and grabbed history), so 0 is safe.
+        public int Order => 0;
 
         private readonly IHistoryService _historyService;
 
