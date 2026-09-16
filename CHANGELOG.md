@@ -31,9 +31,15 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   release type, audio titles — is frozen across candidates.
   Applied at the grab-time upgrade decisions (`UpgradeAllowedSpecification`,
   `UpgradeDiskSpecification`), the import-time upgrade decision, the manual import listing and
-  the episode file API resource. **Naming is deliberately excluded**: `FileNameBuilder` keeps
-  using the old overload, so the `{Custom Formats}` token, `{Scene Name}`, `{Original Title}`,
-  the rename preview and webhooks are all unchanged.
+  the episode file API resource. **Naming is deliberately excluded**: `EpisodeFileMovingService`
+  passes `LocalEpisode.NamingCustomFormats`, which stays on the legacy ladder, so the
+  `{Custom Formats}` token, `{Scene Name}`, `{Original Title}` and the rename preview are
+  unchanged and turning the setting on never proposes a library-wide rename.
+  With the setting **on**, the custom format list *and* the score reported on webhooks, Discord,
+  custom scripts, the `ScriptImport` environment, the manual-import UI and the
+  `downloadFolderImported` history row all follow the scoring ladder, so they stay consistent
+  with each other; they may differ from what those surfaces reported before the setting was
+  enabled. With the setting **off** (the default) nothing changes anywhere.
   Note that a higher file score can **block upgrades that were previously allowed** — that is
   the intended effect, and turning the setting back off restores the old behaviour.
 - **`BackfillGrabbedReleaseTitles` command.** Manual, never scheduled, idempotent. Fills the
@@ -45,6 +51,21 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   to the closest download-id bearing import within six hours of `DateAdded`. Download ids are
   compared case-insensitively. Logs `scanned / set / no-import-event / no-download-id / no-grab /
   unchanged`.
+
+### Fixed
+
+- **Grabbed Release Title: the reported custom formats now match the reported score.** The format
+  list carried on `LocalEpisode` is the scoring ladder's list, so webhooks, Discord, custom
+  scripts, the `ScriptImport` environment, the manual-import UI and the `downloadFolderImported`
+  history row can no longer show a format list that cannot produce the score printed next to it.
+  Naming keeps the legacy ladder through the new `LocalEpisode.NamingCustomFormats`.
+- **Grabbed Release Title: no more needless audio-language probes at import.** The audio-probe
+  augmenter's rejection predictor mirrored the old ladder while
+  `MinimumCustomFormatScoreSpecification` had moved to the scoring one, so it predicted rejection
+  for exactly the files the feature rescues and fired an unnecessary Whisper probe. It now
+  predicts from the scoring ladder, and `AggregateReleaseInfo` runs at `Order 0` so the grabbed
+  release title is always populated before the language aggregator reads it (it was tied at
+  `Order 1`, leaving the ordering undefined).
 
 ## [v4.0.19.2979+krzw.22] — based on Sonarr 4.0.19.2979
 
