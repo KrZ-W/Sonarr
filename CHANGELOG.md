@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.19.2979+krzw.23] — based on Sonarr 4.0.19.2979
+
 ### Added
 
 - **Grabbed Release Title.** The release title a file was grabbed under is now stored on the
@@ -604,6 +608,7 @@ First documented fork release. Bundles every feature currently merged into
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
 [Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.22...HEAD
+[v4.0.19.2979+krzw.23]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.23
 [v4.0.19.2979+krzw.22]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.22
 [v4.0.19.2979+krzw.21]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.21
 [v4.0.19.2979+krzw.20]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.20
