@@ -140,8 +140,20 @@ read once per event type and indexed in memory rather than queried per file.
 - **Scores never go down.** The eligibility rule is structural, not empirical: the incumbent is
   always a candidate.
 - **Naming is unchanged.** `{Custom Formats}`, `{Scene Name}` and `{Original Title}` render
-  exactly as before, so turning the setting on never proposes a rename. Webhooks and
-  notifications are unaffected.
+  exactly as before, so turning the setting on never proposes a rename. Naming is the single
+  deliberate carve-out: it is built from `LocalEpisode.NamingCustomFormats`, which stays on the
+  legacy release-title ladder.
+- **Reported custom formats follow the scoring ladder, and match the reported score.** With the
+  setting **on**, the custom format list *and* the custom format score reported on webhooks,
+  Discord, custom scripts (`Sonarr_EpisodeFile_CustomFormat` / `_CustomFormatScore`), the
+  `ScriptImport` environment, the manual-import UI and the `downloadFolderImported` history row
+  all come from the scoring ladder, so they are always consistent with one another. They can
+  differ from what those surfaces reported before the setting was turned on — a file the feature
+  rescues now reports the formats that produced its score, not the ones the filename alone would
+  have produced.
+- **With the setting off (the default) nothing changes at all.** `ParseCustomFormatForScoring` is
+  byte-identical to `ParseCustomFormat` when the setting is off, so every surface — naming,
+  scoring, webhooks, history — behaves exactly as it did before the feature existed.
 - **Enabling it can block upgrades that were previously allowed.** This is the intended effect
   and the reverse of the same coin: a *higher* file score is a rejection reason
   (`UpgradableSpecification` → `CustomFormatScore` / `CustomFormatCutoff` /
@@ -171,7 +183,7 @@ read once per event type and indexed in memory rather than queried per file.
 Branch `feature/grabbed-release-title-main`, merged into `personal/all-features-main`. Key
 files: `Datastore/Migration/220_add_grabbed_release_title_to_episode_files.cs`,
 `MediaFiles/EpisodeFile.GrabbedReleaseTitle`, `Parser/Model/LocalEpisode`
-(`GrabbedReleaseTitle`, `ScoringCustomFormats`),
+(`GrabbedReleaseTitle`, `NamingCustomFormats`),
 `CustomFormats/CustomFormatCalculationService.ParseCustomFormatForScoring`,
 `MediaFiles/GrabbedReleaseTitles/*` (`GrabbedReleaseTitleSanitizer`,
 `BackfillGrabbedReleaseTitlesCommand`, `BackfillGrabbedReleaseTitlesService`),
