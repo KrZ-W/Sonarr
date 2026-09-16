@@ -193,10 +193,11 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 localEpisode.ReleaseType = releaseType;
 
                 // krzw(grabbed-release-title): parsed AFTER Augment — before it SceneName and Release are
-                // still null, so the preview's accept/reject used a stale custom format list.
-                localEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
-                localEpisode.ScoringCustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
-                localEpisode.CustomFormatScore = localEpisode.Series?.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.ScoringCustomFormats) ?? 0;
+                // still null, so the preview's accept/reject used a stale custom format list. CustomFormats is
+                // the scoring ladder; the legacy ladder is kept aside for naming only.
+                localEpisode.NamingCustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
+                localEpisode.CustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
+                localEpisode.CustomFormatScore = localEpisode.Series?.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.CustomFormats) ?? 0;
 
                 return MapItem(_importDecisionMaker.GetDecision(localEpisode, downloadClientItem), rootFolder, downloadId, null);
             }
@@ -553,11 +554,11 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Manual
                 localEpisode.IndexerFlags = (IndexerFlags)file.IndexerFlags;
                 localEpisode.ReleaseType = file.ReleaseType;
 
-                localEpisode.CustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
-
-                // krzw(grabbed-release-title): scoring ladder for the score, naming ladder for CustomFormats
-                localEpisode.ScoringCustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
-                localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.ScoringCustomFormats) ?? 0;
+                // krzw(grabbed-release-title): CustomFormats is the scoring ladder (so it always agrees
+                // with CustomFormatScore); the legacy ladder is kept aside for naming only.
+                localEpisode.NamingCustomFormats = _formatCalculator.ParseCustomFormat(localEpisode);
+                localEpisode.CustomFormats = _formatCalculator.ParseCustomFormatForScoring(localEpisode);
+                localEpisode.CustomFormatScore = localEpisode.Series.QualityProfile?.Value.CalculateCustomFormatScore(localEpisode.CustomFormats) ?? 0;
 
                 // TODO: Cleanup non-tracked downloads
 
