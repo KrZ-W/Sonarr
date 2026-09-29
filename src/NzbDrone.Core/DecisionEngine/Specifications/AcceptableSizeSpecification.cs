@@ -3,6 +3,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
@@ -78,7 +79,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 return DownloadSpecDecision.Reject(DownloadRejectionReason.UnknownRuntime, "Runtime of all episodes is 0, unable to validate size until it is available");
             }
 
-            var qualityDefinition = _qualityDefinitionService.Get(quality);
+            // krzw(profile-size-limits): the series' quality profile may override the global size limits
+            var qualityDefinition = QualityProfileSizeLimits.Resolve(subject.Series.QualityProfile?.Value, quality, _qualityDefinitionService.Get(quality));
 
             if (qualityDefinition.MinSize.HasValue)
             {
@@ -97,7 +99,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
             }
 
-            if (!qualityDefinition.MaxSize.HasValue || qualityDefinition.MaxSize.Value == 0)
+            if (qualityDefinition.IsMaxUnlimited)
             {
                 _logger.Debug("Max size is unlimited, skipping size check");
             }

@@ -6,6 +6,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
+using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
@@ -185,7 +186,9 @@ namespace NzbDrone.Core.DecisionEngine
         {
             var sizeCompare =  CompareBy(x.RemoteEpisode, y.RemoteEpisode, remoteEpisode =>
             {
-                var preferredSize = _qualityDefinitionService.Get(remoteEpisode.ParsedEpisodeInfo.Quality.Quality).PreferredSize;
+                // krzw(profile-size-limits): the series' quality profile may override the global preferred size
+                var quality = remoteEpisode.ParsedEpisodeInfo.Quality.Quality;
+                var preferredSize = QualityProfileSizeLimits.Resolve(remoteEpisode.Series.QualityProfile?.Value, quality, _qualityDefinitionService.Get(quality)).PreferredSize;
 
                 // If no value for preferred it means unlimited so fallback to sort largest is best
                 if (preferredSize.HasValue && remoteEpisode.Series.Runtime > 0)
