@@ -1621,6 +1621,7 @@
   "QualityLimitsSeriesRuntimeHelpText": "Limits are automatically adjusted for the series runtime and number of episodes in the file.",
   "QualityProfile": "Quality Profile",
   "QualityProfileInUseSeriesListCollection": "Can't delete a quality profile that is attached to a series, list, or collection",
+  "QualityProfileSizeLimitsHelpText": "Size limits for this quality in this profile (MB per minute): minimum, preferred, maximum. Leave empty to use the global Quality Definitions. A maximum of 0 means unlimited.",
   "QualityProfiles": "Quality Profiles",
   "QualityProfilesLoadError": "Unable to load Quality Profiles",
   "QualitySettings": "Quality Settings",
