@@ -26,6 +26,11 @@ namespace Sonarr.Api.V3.Profiles.Quality
         public List<QualityProfileQualityItemResource> Items { get; set; }
         public bool Allowed { get; set; }
 
+        // krzw(profile-size-limits): MB/min overrides, null = use the global quality definition, MaxSize 0 = unlimited
+        public double? MinSize { get; set; }
+        public double? MaxSize { get; set; }
+        public double? PreferredSize { get; set; }
+
         public QualityProfileQualityItemResource()
         {
             Items = new List<QualityProfileQualityItemResource>();
@@ -75,7 +80,10 @@ namespace Sonarr.Api.V3.Profiles.Quality
                 Name = model.Name,
                 Quality = model.Quality,
                 Items = model.Items.ConvertAll(ToResource),
-                Allowed = model.Allowed
+                Allowed = model.Allowed,
+                MinSize = model.MinSize,  // krzw(profile-size-limits)
+                MaxSize = model.MaxSize,
+                PreferredSize = model.PreferredSize
             };
         }
 
@@ -123,7 +131,10 @@ namespace Sonarr.Api.V3.Profiles.Quality
                 Name = resource.Name,
                 Quality = resource.Quality != null ? (NzbDrone.Core.Qualities.Quality)resource.Quality.Id : null,
                 Items = resource.Items.ConvertAll(ToModel),
-                Allowed = resource.Allowed
+                Allowed = resource.Allowed,
+                MinSize = resource.MinSize,  // krzw(profile-size-limits)
+                MaxSize = resource.MaxSize,
+                PreferredSize = resource.PreferredSize
             };
         }
 
