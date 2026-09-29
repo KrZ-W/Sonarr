@@ -10,7 +10,19 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Per-Profile Size Limits.** Each item of a quality profile (a quality row or a group row)
+  can now override the global Quality Definition size limits with its own `minSize`,
+  `preferredSize` and `maxSize` in MB per minute (`/api/v3/qualityprofile` items; three
+  inputs per row in the profile editor). `null` inherits the global value; `maxSize: 0`
+  means unlimited in that profile. Resolution per field is
+  *member override → group override → global definition*. Used by the grab-time size check
+  (`AcceptableSizeSpecification`, still summing per-episode runtime for season packs) and by
+  the release ordering's preferred-size comparison. Validation bounds every override to
+  0..1000 MB/min and checks `min ≤ preferred ≤ max` on the **effective** values. Items are
+  embedded JSON, so there is no migration and untouched profiles serialise unchanged.
+  Docs: [docs/features/profile-size-limits.md](docs/features/profile-size-limits.md).
 
 ## [v4.0.19.2979+krzw.23] — based on Sonarr 4.0.19.2979
 
