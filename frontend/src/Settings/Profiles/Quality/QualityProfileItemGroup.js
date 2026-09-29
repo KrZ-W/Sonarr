@@ -9,6 +9,7 @@ import IconButton from 'Components/Link/IconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import QualityProfileItemDragSource from './QualityProfileItemDragSource';
+import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits';
 import styles from './QualityProfileItemGroup.css';
 
 class QualityProfileItemGroup extends Component {
@@ -34,6 +35,16 @@ class QualityProfileItemGroup extends Component {
     onItemGroupNameChange(groupId, value);
   };
 
+  // krzw(profile-size-limits)
+  onSizeLimitChange = (name, value) => {
+    const {
+      groupId,
+      onQualityProfileItemSizeLimitChange
+    } = this.props;
+
+    onQualityProfileItemSizeLimitChange(groupId, true, name, value);
+  };
+
   onDeleteGroupPress = ({ value }) => {
     const {
       groupId,
@@ -52,6 +63,9 @@ class QualityProfileItemGroup extends Component {
       groupId,
       name,
       allowed,
+      minSize,
+      preferredSize,
+      maxSize,
       items,
       qualityIndex,
       isDragging,
@@ -129,6 +143,17 @@ class QualityProfileItemGroup extends Component {
           }
 
           {
+            // krzw(profile-size-limits): group-level overrides apply to every member without its own override
+            !editGroups &&
+              <QualityProfileItemSizeLimits
+                minSize={minSize}
+                preferredSize={preferredSize}
+                maxSize={maxSize}
+                onSizeLimitChange={this.onSizeLimitChange}
+              />
+          }
+
+          {
             connectDragSource(
               <div className={styles.dragHandle}>
                 <Icon
@@ -179,6 +204,9 @@ QualityProfileItemGroup.propTypes = {
   groupId: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   allowed: PropTypes.bool.isRequired,
+  minSize: PropTypes.number,
+  preferredSize: PropTypes.number,
+  maxSize: PropTypes.number,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   qualityIndex: PropTypes.string.isRequired,
   isDragging: PropTypes.bool.isRequired,
@@ -189,6 +217,7 @@ QualityProfileItemGroup.propTypes = {
   onQualityProfileItemAllowedChange: PropTypes.func.isRequired,
   onItemGroupNameChange: PropTypes.func.isRequired,
   onDeleteGroupPress: PropTypes.func.isRequired,
+  onQualityProfileItemSizeLimitChange: PropTypes.func,
   onQualityProfileItemDragMove: PropTypes.func.isRequired,
   onQualityProfileItemDragEnd: PropTypes.func.isRequired
 };

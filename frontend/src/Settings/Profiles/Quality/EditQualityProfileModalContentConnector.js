@@ -223,6 +223,22 @@ class EditQualityProfileModalContentConnector extends Component {
     });
   };
 
+  // krzw(profile-size-limits)
+  onQualityProfileItemSizeLimitChange = (id, isGroup, name, value) => {
+    const qualityProfile = _.cloneDeep(this.props.item);
+    const items = qualityProfile.items.value;
+    const item = isGroup ?
+      _.find(items, (i) => i.id === id) :
+      _.find(items, (i) => i.quality && i.quality.id === id);
+
+    item[name] = value == null ? null : value;
+
+    this.props.setQualityProfileValue({
+      name: 'items',
+      value: items
+    });
+  };
+
   onItemGroupAllowedChange = (id, allowed) => {
     const qualityProfile = _.cloneDeep(this.props.item);
     const items = qualityProfile.items.value;
@@ -462,6 +478,7 @@ class EditQualityProfileModalContentConnector extends Component {
         onDeleteGroupPress={this.onDeleteGroupPress}
         onQualityProfileItemAllowedChange={this.onQualityProfileItemAllowedChange}
         onItemGroupAllowedChange={this.onItemGroupAllowedChange}
+        onQualityProfileItemSizeLimitChange={this.onQualityProfileItemSizeLimitChange}
         onItemGroupNameChange={this.onItemGroupNameChange}
         onQualityProfileItemDragMove={this.onQualityProfileItemDragMove}
         onQualityProfileItemDragEnd={this.onQualityProfileItemDragEnd}

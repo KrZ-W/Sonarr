@@ -1,0 +1,18 @@
+/* krzw(profile-size-limits) */
+.sizeLimits {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 6px;
+  margin-left: 6px;
+}
+
+.sizeInput {
+  composes: input from '~Components/Form/TextInput.css';
+
+  margin-left: 4px;
+  width: 62px;
+  height: 24px;
+  font-size: 12px;
+  text-align: right;
+}
