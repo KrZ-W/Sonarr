@@ -17,6 +17,13 @@ namespace NzbDrone.Core.Profiles.Qualities
         public List<QualityProfileQualityItem> Items { get; set; }
         public bool Allowed { get; set; }
 
+        // krzw(profile-size-limits): per-profile overrides of the global QualityDefinition size limits
+        // (MB/min). null = not overridden, fall back to the group item / global definition.
+        // MaxSize 0 = unlimited (same meaning as the global definition), distinct from null.
+        public double? MinSize { get; set; }
+        public double? MaxSize { get; set; }
+        public double? PreferredSize { get; set; }
+
         public QualityProfileQualityItem()
         {
             Items = new List<QualityProfileQualityItem>();

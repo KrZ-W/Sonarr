@@ -7,6 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -360,6 +361,138 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             });
 
             Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().Be(true);
+        }
+
+        // krzw(profile-size-limits)
+        private QualityProfileQualityItem GivenProfileWithSdtvOverride(double? min, double? max, bool grouped = false)
+        {
+            var sdtv = new QualityProfileQualityItem { Quality = Quality.SDTV, Allowed = true };
+            var items = new List<QualityProfileQualityItem>();
+
+            if (grouped)
+            {
+                items.Add(new QualityProfileQualityItem
+                {
+                    Id = 1000,
+                    Name = "SD",
+                    Allowed = true,
+                    MinSize = min,
+                    MaxSize = max,
+                    Items = new List<QualityProfileQualityItem>
+                    {
+                        sdtv,
+                        new QualityProfileQualityItem { Quality = Quality.DVD, Allowed = true }
+                    }
+                });
+            }
+            else
+            {
+                sdtv.MinSize = min;
+                sdtv.MaxSize = max;
+                items.Add(sdtv);
+            }
+
+            _series.QualityProfile = new QualityProfile { Items = items };
+
+            return sdtv;
+        }
+
+        [Test]
+        public void should_reject_when_profile_max_override_is_tighter_than_global()
+        {
+            // global SDTV max is 10 MB/min, 30 min => 300 MB allowed; override to 5 => 150 MB
+            GivenProfileWithSdtvOverride(null, 5);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 250.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_accept_when_profile_max_override_is_looser_than_global()
+        {
+            GivenProfileWithSdtvOverride(null, 20);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 500.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_when_profile_min_override_is_tighter_than_global()
+        {
+            // global SDTV min is 2 MB/min => 60 MB; override to 5 => 150 MB
+            GivenProfileWithSdtvOverride(5, null);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 100.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_fall_back_to_global_definition_when_profile_has_no_override()
+        {
+            GivenProfileWithSdtvOverride(null, null);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 500.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
+
+            _parseResultSingle.Release.Size = 250.Megabytes();
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_treat_profile_max_override_of_zero_as_unlimited()
+        {
+            GivenProfileWithSdtvOverride(null, 0);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 18457280000;
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_apply_profile_override_across_all_episodes_of_a_season_pack()
+        {
+            // 6 episodes x 30 min = 180 min; override max 5 MB/min => 900 MB
+            GivenProfileWithSdtvOverride(null, 5);
+            _series.Runtime = 30;
+            _parseResultMultiSet.Series = _series;
+
+            _parseResultMultiSet.Release.Size = 800.Megabytes();
+            Subject.IsSatisfiedBy(_parseResultMultiSet, null).Accepted.Should().BeTrue();
+
+            _parseResultMultiSet.Release.Size = 1000.Megabytes();
+            Subject.IsSatisfiedBy(_parseResultMultiSet, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_use_group_override_for_member_quality()
+        {
+            GivenProfileWithSdtvOverride(null, 5, grouped: true);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 250.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_prefer_member_override_over_group_override()
+        {
+            var sdtv = GivenProfileWithSdtvOverride(null, 5, grouped: true);
+            sdtv.MaxSize = 20;
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 500.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
         }
     }
 }
