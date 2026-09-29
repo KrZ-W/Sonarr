@@ -6,6 +6,7 @@ import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
+import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits';
 import styles from './QualityProfileItem.css';
 
 class QualityProfileItem extends Component {
@@ -20,6 +21,16 @@ class QualityProfileItem extends Component {
     } = this.props;
 
     onQualityProfileItemAllowedChange(qualityId, value);
+  };
+
+  // krzw(profile-size-limits)
+  onSizeLimitChange = (name, value) => {
+    const {
+      qualityId,
+      onQualityProfileItemSizeLimitChange
+    } = this.props;
+
+    onQualityProfileItemSizeLimitChange(qualityId, false, name, value);
   };
 
   onCreateGroupPress = () => {
@@ -41,6 +52,9 @@ class QualityProfileItem extends Component {
       groupId,
       name,
       allowed,
+      minSize,
+      preferredSize,
+      maxSize,
       isDragging,
       isOverCurrent,
       connectDragSource
@@ -92,6 +106,17 @@ class QualityProfileItem extends Component {
         </label>
 
         {
+          // krzw(profile-size-limits): overrides only editable outside group-edit mode and outside the drag preview
+          !editGroups && !isPreview && !groupId &&
+            <QualityProfileItemSizeLimits
+              minSize={minSize}
+              preferredSize={preferredSize}
+              maxSize={maxSize}
+              onSizeLimitChange={this.onSizeLimitChange}
+            />
+        }
+
+        {
           connectDragSource(
             <div className={styles.dragHandle}>
               <Icon
@@ -114,12 +139,16 @@ QualityProfileItem.propTypes = {
   qualityId: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   allowed: PropTypes.bool.isRequired,
+  minSize: PropTypes.number,
+  preferredSize: PropTypes.number,
+  maxSize: PropTypes.number,
   isDragging: PropTypes.bool.isRequired,
   isOverCurrent: PropTypes.bool.isRequired,
   isInGroup: PropTypes.bool,
   connectDragSource: PropTypes.func,
   onCreateGroupPress: PropTypes.func,
-  onQualityProfileItemAllowedChange: PropTypes.func
+  onQualityProfileItemAllowedChange: PropTypes.func,
+  onQualityProfileItemSizeLimitChange: PropTypes.func
 };
 
 QualityProfileItem.defaultProps = {

@@ -131,7 +131,7 @@ class QualityProfileItems extends Component {
               style={{ minHeight: `${minHeight}px` }}
             >
               {
-                qualityProfileItems.map(({ id, name, allowed, quality, items }, index) => {
+                qualityProfileItems.map(({ id, name, allowed, quality, items, minSize, preferredSize, maxSize }, index) => {
                   const identifier = quality ? quality.id : id;
 
                   return (
@@ -142,6 +142,9 @@ class QualityProfileItems extends Component {
                       qualityId={quality && quality.id}
                       name={quality ? quality.name : name}
                       allowed={allowed}
+                      minSize={minSize}
+                      preferredSize={preferredSize}
+                      maxSize={maxSize}
                       items={items}
                       qualityIndex={`${index + 1}`}
                       isInGroup={false}
