@@ -6,7 +6,7 @@ using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Delay;
-using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Profiles.Qualities; // krzw(profile-size-limits)
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 

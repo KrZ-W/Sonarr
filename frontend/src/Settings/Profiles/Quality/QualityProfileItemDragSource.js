@@ -115,9 +115,9 @@ class QualityProfileItemDragSource extends Component {
       qualityId,
       name,
       allowed,
-      minSize,
-      preferredSize,
-      maxSize,
+      minSize, // krzw(profile-size-limits)
+      preferredSize, // krzw(profile-size-limits)
+      maxSize, // krzw(profile-size-limits)
       items,
       qualityIndex,
       isDragging,
@@ -131,7 +131,7 @@ class QualityProfileItemDragSource extends Component {
       onQualityProfileItemAllowedChange,
       onItemGroupAllowedChange,
       onItemGroupNameChange,
-      onQualityProfileItemSizeLimitChange,
+      onQualityProfileItemSizeLimitChange, // krzw(profile-size-limits)
       onQualityProfileItemDragMove,
       onQualityProfileItemDragEnd
     } = this.props;
@@ -164,7 +164,7 @@ class QualityProfileItemDragSource extends Component {
               groupId={groupId}
               name={name}
               allowed={allowed}
-              minSize={minSize}
+              minSize={minSize} /* krzw(profile-size-limits) */
               preferredSize={preferredSize}
               maxSize={maxSize}
               items={items}
@@ -174,7 +174,7 @@ class QualityProfileItemDragSource extends Component {
               isDraggingDown={isDraggingDown}
               connectDragSource={connectDragSource}
               onDeleteGroupPress={onDeleteGroupPress}
-              onQualityProfileItemSizeLimitChange={onQualityProfileItemSizeLimitChange}
+              onQualityProfileItemSizeLimitChange={onQualityProfileItemSizeLimitChange} /* krzw(profile-size-limits) */
               onQualityProfileItemAllowedChange={onQualityProfileItemAllowedChange}
               onItemGroupAllowedChange={onItemGroupAllowedChange}
               onItemGroupNameChange={onItemGroupNameChange}
@@ -191,7 +191,7 @@ class QualityProfileItemDragSource extends Component {
               qualityId={qualityId}
               name={name}
               allowed={allowed}
-              minSize={minSize}
+              minSize={minSize} /* krzw(profile-size-limits) */
               preferredSize={preferredSize}
               maxSize={maxSize}
               qualityIndex={qualityIndex}
@@ -200,7 +200,7 @@ class QualityProfileItemDragSource extends Component {
               connectDragSource={connectDragSource}
               onCreateGroupPress={onCreateGroupPress}
               onQualityProfileItemAllowedChange={onQualityProfileItemAllowedChange}
-              onQualityProfileItemSizeLimitChange={onQualityProfileItemSizeLimitChange}
+              onQualityProfileItemSizeLimitChange={onQualityProfileItemSizeLimitChange} /* krzw(profile-size-limits) */
             />
         }
 
@@ -224,9 +224,9 @@ QualityProfileItemDragSource.propTypes = {
   qualityId: PropTypes.number,
   name: PropTypes.string.isRequired,
   allowed: PropTypes.bool.isRequired,
-  minSize: PropTypes.number,
-  preferredSize: PropTypes.number,
-  maxSize: PropTypes.number,
+  minSize: PropTypes.number, // krzw(profile-size-limits)
+  preferredSize: PropTypes.number, // krzw(profile-size-limits)
+  maxSize: PropTypes.number, // krzw(profile-size-limits)
   items: PropTypes.arrayOf(PropTypes.object),
   qualityIndex: PropTypes.string.isRequired,
   isDragging: PropTypes.bool,
@@ -241,7 +241,7 @@ QualityProfileItemDragSource.propTypes = {
   onQualityProfileItemAllowedChange: PropTypes.func.isRequired,
   onItemGroupAllowedChange: PropTypes.func,
   onItemGroupNameChange: PropTypes.func,
-  onQualityProfileItemSizeLimitChange: PropTypes.func,
+  onQualityProfileItemSizeLimitChange: PropTypes.func, // krzw(profile-size-limits)
   onQualityProfileItemDragMove: PropTypes.func.isRequired,
   onQualityProfileItemDragEnd: PropTypes.func.isRequired
 };

@@ -131,6 +131,7 @@ class QualityProfileItems extends Component {
               style={{ minHeight: `${minHeight}px` }}
             >
               {
+                // krzw(profile-size-limits): minSize / preferredSize / maxSize
                 qualityProfileItems.map(({ id, name, allowed, quality, items, minSize, preferredSize, maxSize }, index) => {
                   const identifier = quality ? quality.id : id;
 
@@ -142,7 +143,7 @@ class QualityProfileItems extends Component {
                       qualityId={quality && quality.id}
                       name={quality ? quality.name : name}
                       allowed={allowed}
-                      minSize={minSize}
+                      minSize={minSize} /* krzw(profile-size-limits) */
                       preferredSize={preferredSize}
                       maxSize={maxSize}
                       items={items}

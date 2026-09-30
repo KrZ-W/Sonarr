@@ -15,6 +15,13 @@ function getQualityItemGroupId(qualityProfile) {
   return Math.max(1000, ...ids) + 1;
 }
 
+// krzw(profile-size-limits)
+function clearSizeLimits(item) {
+  item.minSize = null;
+  item.preferredSize = null;
+  item.maxSize = null;
+}
+
 function parseIndex(index) {
   const split = index.split('.');
 
@@ -279,6 +286,9 @@ class EditQualityProfileModalContentConnector extends Component {
     const index = items.indexOf(item);
     const groupId = getQualityItemGroupId(qualityProfile);
 
+    // krzw(profile-size-limits): the editor cannot show a member's own override inside a group
+    clearSizeLimits(item);
+
     const group = {
       id: groupId,
       name: item.quality.name,
@@ -437,6 +447,7 @@ class EditQualityProfileModalContentConnector extends Component {
       if (dropGroupIndex == null) {
         items.splice(dropItemIndex, 0, item);
       } else {
+        clearSizeLimits(item); // krzw(profile-size-limits)
         dropGroup.items.splice(dropItemIndex, 0, item);
       }
 
@@ -478,7 +489,7 @@ class EditQualityProfileModalContentConnector extends Component {
         onDeleteGroupPress={this.onDeleteGroupPress}
         onQualityProfileItemAllowedChange={this.onQualityProfileItemAllowedChange}
         onItemGroupAllowedChange={this.onItemGroupAllowedChange}
-        onQualityProfileItemSizeLimitChange={this.onQualityProfileItemSizeLimitChange}
+        onQualityProfileItemSizeLimitChange={this.onQualityProfileItemSizeLimitChange} // krzw(profile-size-limits)
         onItemGroupNameChange={this.onItemGroupNameChange}
         onQualityProfileItemDragMove={this.onQualityProfileItemDragMove}
         onQualityProfileItemDragEnd={this.onQualityProfileItemDragEnd}
