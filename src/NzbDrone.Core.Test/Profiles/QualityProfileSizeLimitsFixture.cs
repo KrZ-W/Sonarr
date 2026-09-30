@@ -122,5 +122,76 @@ namespace NzbDrone.Core.Test.Profiles
 
             limits.MaxSize.Should().Be(3);
         }
+
+        [Test]
+        public void should_use_overrides_when_the_definition_has_no_limits_at_all()
+        {
+            _member.MinSize = 3;
+            _member.PreferredSize = 6;
+            _member.MaxSize = 8;
+
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, new QualityDefinition(Quality.HDTV1080p));
+
+            limits.MinSize.Should().Be(3);
+            limits.PreferredSize.Should().Be(6);
+            limits.MaxSize.Should().Be(8);
+            limits.MinSizeSource.Should().Be(SizeLimitSource.Member);
+        }
+
+        [Test]
+        public void should_report_the_source_of_each_field()
+        {
+            _group.MaxSize = 8;
+            _member.MinSize = 1;
+
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, _definition);
+
+            limits.MinSizeSource.Should().Be(SizeLimitSource.Member);
+            limits.MaxSizeSource.Should().Be(SizeLimitSource.Group);
+            limits.PreferredSizeSource.Should().Be(SizeLimitSource.Global);
+        }
+
+        [Test]
+        public void should_clamp_inherited_preferred_size_down_to_an_overridden_max()
+        {
+            _member.MaxSize = 8;
+
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, _definition);
+
+            limits.PreferredSize.Should().Be(8);
+            limits.PreferredSizeClamped.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_clamp_preferred_size_up_to_an_overridden_min()
+        {
+            _member.MinSize = 50;
+
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, _definition);
+
+            limits.PreferredSize.Should().Be(50);
+            limits.PreferredSizeClamped.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_not_clamp_preferred_size_when_max_is_unlimited()
+        {
+            _member.MaxSize = 0;
+            _member.PreferredSize = 500;
+
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, _definition);
+
+            limits.PreferredSize.Should().Be(500);
+            limits.PreferredSizeClamped.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_not_clamp_when_nothing_is_overridden()
+        {
+            var limits = QualityProfileSizeLimits.Resolve(_profile, Quality.HDTV1080p, _definition);
+
+            limits.PreferredSize.Should().Be(40);
+            limits.PreferredSizeClamped.Should().BeFalse();
+        }
     }
 }
