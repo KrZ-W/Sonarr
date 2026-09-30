@@ -713,22 +713,43 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         }
 
         [Test]
-        public void should_fall_back_to_global_preferred_size_when_profile_has_no_override()
+        public void should_use_profile_preferred_size_override_when_global_is_unlimited()
         {
-            GivenPreferredSize(200);
-
+            // Setup leaves the global PreferredSize null (largest is best); the profile override alone flips the comparer to closest-to-600 MB
             var remoteEpisodeSmall = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 1200.Megabytes(), age: 1);
             var remoteEpisodeLarge = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 10000.Megabytes(), age: 1);
 
-            GivenProfilePreferredSize(remoteEpisodeSmall, null);
-            GivenProfilePreferredSize(remoteEpisodeLarge, null);
+            GivenProfilePreferredSize(remoteEpisodeSmall, 10);
+            GivenProfilePreferredSize(remoteEpisodeLarge, 10);
 
             var decisions = new List<DownloadDecision>();
             decisions.Add(new DownloadDecision(remoteEpisodeSmall));
             decisions.Add(new DownloadDecision(remoteEpisodeLarge));
 
             var qualifiedReports = Subject.PrioritizeDecisions(decisions);
-            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodeLarge);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodeSmall);
+        }
+
+        [Test]
+        public void should_use_group_preferred_size_override_for_a_member_quality()
+        {
+            var remoteEpisodeSmall = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 1200.Megabytes(), age: 1);
+            var remoteEpisodeLarge = GivenRemoteEpisode(new List<Episode> { GivenEpisode(1) }, new QualityModel(Quality.HDTV720p), Language.English, size: 10000.Megabytes(), age: 1);
+
+            foreach (var remoteEpisode in new[] { remoteEpisodeSmall, remoteEpisodeLarge })
+            {
+                var items = remoteEpisode.Series.QualityProfile.Value.Items;
+                var member = items.Single(i => i.Quality == Quality.HDTV720p);
+                items.Remove(member);
+                items.Add(new QualityProfileQualityItem { Id = 1000, Name = "HD 720p", Allowed = true, PreferredSize = 10, Items = new List<QualityProfileQualityItem> { member } });
+            }
+
+            var decisions = new List<DownloadDecision>();
+            decisions.Add(new DownloadDecision(remoteEpisodeSmall));
+            decisions.Add(new DownloadDecision(remoteEpisodeLarge));
+
+            var qualifiedReports = Subject.PrioritizeDecisions(decisions);
+            qualifiedReports.First().RemoteEpisode.Should().Be(remoteEpisodeSmall);
         }
     }
 }

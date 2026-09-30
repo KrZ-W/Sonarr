@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Profiles.Qualities;
-using NzbDrone.Core.Qualities;
+using NzbDrone.Core.Qualities; // krzw(profile-size-limits)
 using Sonarr.Http;
 using Sonarr.Http.REST;
 using Sonarr.Http.REST.Attributes;
@@ -17,7 +17,7 @@ namespace Sonarr.Api.V3.Profiles.Quality
     {
         private readonly IQualityProfileService _profileService;
 
-        public QualityProfileController(IQualityProfileService profileService, ICustomFormatService formatService, IQualityDefinitionService qualityDefinitionService)
+        public QualityProfileController(IQualityProfileService profileService, ICustomFormatService formatService, IQualityDefinitionService qualityDefinitionService /* krzw(profile-size-limits) */)
         {
             _profileService = profileService;
             SharedValidator.RuleFor(c => c.Name).NotEmpty();

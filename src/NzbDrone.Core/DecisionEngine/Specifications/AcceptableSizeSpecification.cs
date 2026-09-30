@@ -3,7 +3,7 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Profiles.Qualities; // krzw(profile-size-limits)
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Tv;
 
@@ -99,6 +99,7 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 }
             }
 
+            // krzw(profile-size-limits): null or 0 = unlimited, as upstream
             if (qualityDefinition.IsMaxUnlimited)
             {
                 _logger.Debug("Max size is unlimited, skipping size check");

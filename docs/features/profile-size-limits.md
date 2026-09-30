@@ -60,7 +60,13 @@ member item override  ??  group item override  ??  global Quality Definition
   Groups in Sonarr mean "these qualities are equal", so a group-level size window is the
   natural way to say "1080p, any source, at most 8 MB/min"; a member override is more
   specific and therefore wins.
-- The UI edits top-level items and groups. Member overrides inside a group are API-only.
+- The **effective preferred size is clamped** into the effective `[min, max]` window (a `max`
+  of `0` / unlimited never clamps). So a profile that only caps `max` at 8 while the global
+  definition prefers 95 orders releases toward 8 MB/min, and the ordering can never prefer a
+  size the size check would reject, even if the global definitions change later.
+- The UI edits top-level items and groups. Member overrides inside a group are API-only;
+  when the editor moves a quality *into* a group (create group, or drag into one) it clears
+  that quality's own overrides, because it could not show them there.
 
 ## Where it applies
 
@@ -77,12 +83,16 @@ member item override  ??  group item override  ??  global Quality Definition
 
 `PUT`/`POST` are rejected with a 400 when:
 
-- any override is outside `0 … 1000`, or
-- the **effective** triple of any quality that has an override is not ordered
-  `min ≤ preferred ≤ max` (a `max` of `0` / unlimited is skipped). This is checked on the
-  resolved values, so an override of `preferredSize: 70` with an inherited global
-  `maxSize: 60` is refused instead of letting the comparer prefer releases the size
-  specification then rejects.
+- any override is outside `0 … 1000`;
+- values set on the **same item** are not ordered `min ≤ preferred ≤ max` (a `max` of `0` /
+  unlimited is skipped);
+- the **effective** `min` / `max` window of a quality that has an override is inverted
+  (`min > max`). The message names where each value came from, e.g.
+  `HDTV-1080p: minimum size 5 (global Quality Definitions) must not exceed maximum size 3 (this profile)`.
+
+`preferred` is deliberately not validated against *inherited* values: it is clamped at
+runtime (see above), so a later change to the global definitions cannot leave a profile
+un-saveable or inconsistent.
 
 ## Storage
 
@@ -95,21 +105,24 @@ byte-for-byte as before; rows written before the feature deserialise with all th
 
 - A series whose profile does not contain the release's quality (should not happen; every
   profile lists every quality) falls back to the global definition.
-- Grouping a quality in the editor keeps its own override; ungrouping drops the group's
-  override (the group ceases to exist).
+- Grouping a quality in the editor clears its own override (the group's applies instead);
+  ungrouping drops the group's override (the group ceases to exist).
 - The global **Reset Definitions** action does not touch profile overrides.
 - Saving a profile from the editor preserves overrides set through the API: the editor
   round-trips the item objects it received.
 
-## Code map
+## Source
 
-- `NzbDrone.Core/Profiles/Qualities/QualityProfileQualityItem.cs` — `MinSize` / `MaxSize` / `PreferredSize`.
-- `NzbDrone.Core/Profiles/Qualities/QualityProfileSizeLimits.cs` — `Resolve` / `FindItems` / `EffectiveSizeLimits`.
-- `NzbDrone.Core/DecisionEngine/Specifications/AcceptableSizeSpecification.cs`,
-  `NzbDrone.Core/DecisionEngine/DownloadDecisionComparer.cs` — consumers.
-- `Sonarr.Api.V3/Profiles/Quality/QualityProfileResource.cs`, `QualityItemSizeLimitsValidator.cs`, `QualityProfileController.cs`.
-- `frontend/src/Settings/Profiles/Quality/QualityProfileItemSizeLimits.js` and the item / group / drag-source plumbing.
-- Tests: `AcceptableSizeSpecificationFixture`, `PrioritizeDownloadDecisionFixture`,
-  `QualityProfileSizeLimitsFixture`, `QualityProfileItemsConverterFixture`.
+Branch `feature/profile-size-limits-main`, merged into `personal/all-features-main`. Key
+files: `Profiles/Qualities/QualityProfileQualityItem` (`MinSize` / `MaxSize` / `PreferredSize`),
+`Profiles/Qualities/QualityProfileSizeLimits` (`Resolve` / `FindItems` / `EffectiveSizeLimits` /
+`SizeLimitSource`), `DecisionEngine/Specifications/AcceptableSizeSpecification`,
+`DecisionEngine/DownloadDecisionComparer.CompareSize`,
+`Sonarr.Api.V3/Profiles/Quality/QualityProfileResource`, `QualityItemSizeLimitsValidator`,
+`QualityProfileController`, `frontend/src/Settings/Profiles/Quality/QualityProfileItemSizeLimits`
+and the item / group / drag-source / connector plumbing in the same folder.
+Tests: `AcceptableSizeSpecificationFixture`, `PrioritizeDownloadDecisionFixture`,
+`QualityProfileSizeLimitsFixture`, `QualityProfileItemsConverterFixture`,
+`QualityItemSizeLimitsValidatorFixture` (Api.Test).
 
 All hunks in upstream files are marked `krzw(profile-size-limits)`.

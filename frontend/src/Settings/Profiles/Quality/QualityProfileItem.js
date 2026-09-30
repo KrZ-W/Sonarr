@@ -6,7 +6,7 @@ import Icon from 'Components/Icon';
 import IconButton from 'Components/Link/IconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
-import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits';
+import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits'; // krzw(profile-size-limits)
 import styles from './QualityProfileItem.css';
 
 class QualityProfileItem extends Component {
@@ -52,9 +52,9 @@ class QualityProfileItem extends Component {
       groupId,
       name,
       allowed,
-      minSize,
-      preferredSize,
-      maxSize,
+      minSize, // krzw(profile-size-limits)
+      preferredSize, // krzw(profile-size-limits)
+      maxSize, // krzw(profile-size-limits)
       isDragging,
       isOverCurrent,
       connectDragSource
@@ -139,16 +139,16 @@ QualityProfileItem.propTypes = {
   qualityId: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   allowed: PropTypes.bool.isRequired,
-  minSize: PropTypes.number,
-  preferredSize: PropTypes.number,
-  maxSize: PropTypes.number,
+  minSize: PropTypes.number, // krzw(profile-size-limits)
+  preferredSize: PropTypes.number, // krzw(profile-size-limits)
+  maxSize: PropTypes.number, // krzw(profile-size-limits)
   isDragging: PropTypes.bool.isRequired,
   isOverCurrent: PropTypes.bool.isRequired,
   isInGroup: PropTypes.bool,
   connectDragSource: PropTypes.func,
   onCreateGroupPress: PropTypes.func,
   onQualityProfileItemAllowedChange: PropTypes.func,
-  onQualityProfileItemSizeLimitChange: PropTypes.func
+  onQualityProfileItemSizeLimitChange: PropTypes.func // krzw(profile-size-limits)
 };
 
 QualityProfileItem.defaultProps = {
