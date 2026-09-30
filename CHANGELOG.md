@@ -19,9 +19,15 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
   means unlimited in that profile. Resolution per field is
   *member override → group override → global definition*. Used by the grab-time size check
   (`AcceptableSizeSpecification`, still summing per-episode runtime for season packs) and by
-  the release ordering's preferred-size comparison. Validation bounds every override to
-  0..1000 MB/min and checks `min ≤ preferred ≤ max` on the **effective** values. Items are
-  embedded JSON, so there is no migration and untouched profiles serialise unchanged.
+  the release ordering's preferred-size comparison. The effective preferred size is clamped
+  into the effective `[min, max]` window, so a profile that only caps `max` orders releases
+  toward that cap and the ordering can never prefer a size the size check rejects, even after
+  the global definitions change. Validation bounds every override to 0..1000 MB/min, checks
+  `min ≤ preferred ≤ max` among the values set on the same item, and refuses an inverted
+  effective `min`/`max` window with a message naming where each value came from. Moving a
+  quality into a group in the editor clears its own overrides (the editor cannot show them
+  there). Items are embedded JSON, so there is no migration and untouched profiles serialise
+  unchanged.
   Docs: [docs/features/profile-size-limits.md](docs/features/profile-size-limits.md).
 
 ## [v4.0.19.2979+krzw.23] — based on Sonarr 4.0.19.2979
