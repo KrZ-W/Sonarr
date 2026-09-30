@@ -9,7 +9,7 @@ import IconButton from 'Components/Link/IconButton';
 import { icons } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import QualityProfileItemDragSource from './QualityProfileItemDragSource';
-import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits';
+import QualityProfileItemSizeLimits from './QualityProfileItemSizeLimits'; // krzw(profile-size-limits)
 import styles from './QualityProfileItemGroup.css';
 
 class QualityProfileItemGroup extends Component {
@@ -63,9 +63,9 @@ class QualityProfileItemGroup extends Component {
       groupId,
       name,
       allowed,
-      minSize,
-      preferredSize,
-      maxSize,
+      minSize, // krzw(profile-size-limits)
+      preferredSize, // krzw(profile-size-limits)
+      maxSize, // krzw(profile-size-limits)
       items,
       qualityIndex,
       isDragging,
@@ -204,9 +204,9 @@ QualityProfileItemGroup.propTypes = {
   groupId: PropTypes.number.isRequired,
   name: PropTypes.string.isRequired,
   allowed: PropTypes.bool.isRequired,
-  minSize: PropTypes.number,
-  preferredSize: PropTypes.number,
-  maxSize: PropTypes.number,
+  minSize: PropTypes.number, // krzw(profile-size-limits)
+  preferredSize: PropTypes.number, // krzw(profile-size-limits)
+  maxSize: PropTypes.number, // krzw(profile-size-limits)
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   qualityIndex: PropTypes.string.isRequired,
   isDragging: PropTypes.bool.isRequired,
@@ -217,7 +217,7 @@ QualityProfileItemGroup.propTypes = {
   onQualityProfileItemAllowedChange: PropTypes.func.isRequired,
   onItemGroupNameChange: PropTypes.func.isRequired,
   onDeleteGroupPress: PropTypes.func.isRequired,
-  onQualityProfileItemSizeLimitChange: PropTypes.func,
+  onQualityProfileItemSizeLimitChange: PropTypes.func, // krzw(profile-size-limits)
   onQualityProfileItemDragMove: PropTypes.func.isRequired,
   onQualityProfileItemDragEnd: PropTypes.func.isRequired
 };

@@ -7,7 +7,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
-using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Profiles.Qualities; // krzw(profile-size-limits)
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -493,6 +493,36 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _parseResultSingle.Release.Size = 500.Megabytes();
 
             Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_when_profile_max_override_caps_a_globally_unlimited_quality()
+        {
+            _qualityType.MinSize = null;
+            _qualityType.MaxSize = null;
+            GivenProfileWithSdtvOverride(null, 5);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 250.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
+
+            _series.QualityProfile = new QualityProfile { Items = new List<QualityProfileQualityItem> { new QualityProfileQualityItem { Quality = Quality.SDTV, Allowed = true } } };
+            _parseResultSingle.Release.Size = 18457280000;
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_reject_when_profile_min_override_applies_to_a_quality_with_no_global_min()
+        {
+            _qualityType.MinSize = null;
+            _qualityType.MaxSize = null;
+            GivenProfileWithSdtvOverride(5, null);
+            _series.Runtime = 30;
+            _parseResultSingle.Series = _series;
+            _parseResultSingle.Release.Size = 100.Megabytes();
+
+            Subject.IsSatisfiedBy(_parseResultSingle, null).Accepted.Should().BeFalse();
         }
     }
 }
