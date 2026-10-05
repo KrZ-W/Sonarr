@@ -198,5 +198,27 @@ namespace NzbDrone.Core.Test.Configuration
                 CultureInfo.CurrentCulture = previousCulture;
             }
         }
+
+        // krzw(symlink-import-guard): on by default in this fork, and turning it off must stick
+        [Test]
+        public void reject_symlink_import_sources_should_default_to_true()
+        {
+            Subject.RejectSymlinkImportSources.Should().BeTrue();
+        }
+
+        [Test]
+        public void reject_symlink_import_sources_should_store_and_read_back_false()
+        {
+            Subject.RejectSymlinkImportSources = false;
+
+            AssertUpsert("RejectSymlinkImportSources", false);
+
+            Mocker.GetMock<IConfigRepository>().Setup(c => c.All()).Returns(new List<Config>
+            {
+                new Config { Key = "rejectsymlinkimportsources", Value = "False" }
+            });
+
+            Subject.RejectSymlinkImportSources.Should().BeFalse();
+        }
     }
 }

@@ -12,6 +12,26 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.19.2979+krzw.25] — based on Sonarr 4.0.19.2979
+
+### Added
+
+- **Symlink Import Guard.** New import specification `NotSymlinkSpecification` rejects any
+  import candidate whose source file is a symbolic link, with the permanent rejection reason
+  `SourceIsSymlink` and the message `Source is a symbolic link → <resolved target>`; each
+  rejection is logged at Warn with the link and its target. Applies to completed download
+  handling, the Downloaded Episodes Scan command, the Manual Import listing and re-evaluation,
+  and library rescans of untracked files. Hardlinks are not affected, and only the file itself
+  is checked (no real-path rule, so in-folder Manual Import of real files is unchanged).
+  Controlled by the new advanced Media Management setting **Reject Symbolic Links as Import
+  Sources** (`rejectSymlinkImportSources`), **on by default** in this fork; turn it off for
+  rclone / debrid setups whose downloads legitimately arrive as links. Motivated by the
+  2026-10-04 incident where seed symlinks from a shared download folder were imported as
+  upgrades and the episodes they pointed at were deleted (upstream sizes a link by its target
+  and the Mono disk provider recreates the link instead of copying bytes). New
+  `IDiskProvider.GetSymbolicLinkTarget` resolves relative, chained, broken and looping links.
+  Docs: [docs/features/symlink-import-guard.md](docs/features/symlink-import-guard.md).
+
 ## [v4.0.19.2979+krzw.24] — based on Sonarr 4.0.19.2979
 
 ### Added
@@ -629,7 +649,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.24...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.25...HEAD
+[v4.0.19.2979+krzw.25]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.25
 [v4.0.19.2979+krzw.24]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.24
 [v4.0.19.2979+krzw.23]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.23
 [v4.0.19.2979+krzw.22]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.22

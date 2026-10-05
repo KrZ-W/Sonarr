@@ -11,7 +11,7 @@ fork; this document describes the Sonarr versions specifically.
 - **Upstream base:** Sonarr `4.0.19.2979`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.24`
+- **Current fork version:** `v4.0.19.2979+krzw.25`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
@@ -31,6 +31,7 @@ fork; this document describes the Sonarr versions specifically.
 | **Audio Track Retag** | After import, rewrites the language tag of the MKV audio tracks verification found mistagged (`mkvpropedit`, header-only, streams never rewritten) so Plex/Jellyfin/Bazarr agree; per-episode in season packs; hardlink-aware (*Skip* / *Copy then retag* / *Retag in place*); non-MKV files skipped or, opt-in, stream-copied by ffmpeg into a new `.mkv` with the tags written in the same pass (no re-encode, verified with ffprobe, rename events raised); outcome stored on the file, manual per-file command | [features/audio-track-retag.md](docs/features/audio-track-retag.md) |
 | **Grabbed Release Title** | Stores the release title a file was grabbed under and, opt-in, scores its custom formats under that title as well as the scene name / original file name, keeping whichever scores best; neither the total nor the priority score can go down, naming and the `{Custom Formats}` token are untouched; manual idempotent backfill command for files imported before the feature | [features/grabbed-release-title.md](docs/features/grabbed-release-title.md) |
 | **Per-Profile Size Limits** | Override the global Quality Definition size limits (min / preferred / max, MB per minute) per quality or group inside a quality profile, e.g. a "1080p Light" profile capped at 8 MB/min next to a normal 1080p profile; validated on the effective values, no migration | [features/profile-size-limits.md](docs/features/profile-size-limits.md) |
+| **Symlink Import Guard** | Rejects an import candidate whose source file is a symbolic link (permanent rejection `Source is a symbolic link → <target>`, Warn log naming the target), so seed symlinks in a shared download folder can no longer be imported as upgrades that delete the file they point at; hardlinks unaffected; advanced Media Management setting, on by default | [features/symlink-import-guard.md](docs/features/symlink-import-guard.md) |
 | **Completed Download Handling** | Make the CDH run interval configurable + log per-run duration, so a slow CDH stops starving manual imports; stuck `ImportPending`/`ImportBlocked` items self-heal back to `Downloading` | [features/completed-download-handling.md](docs/features/completed-download-handling.md) |
 | **Regional Language Parsing** | Adds `en-CA` / `fr-CA` parsing entries so regional tags in filenames resolve correctly | [features/regional-language-parsing.md](docs/features/regional-language-parsing.md) |
 | **Configurable Indexer Cooldown** | Make the indexer back-off/escalation schedule editable | [features/configurable-indexer-cooldown.md](docs/features/configurable-indexer-cooldown.md) |

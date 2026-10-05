@@ -313,6 +313,46 @@ namespace NzbDrone.Common.Disk
             return 0;
         }
 
+        // krzw(symlink-import-guard): final target of a symbolic link, resolved through chains and relative
+        // targets; null when the path itself is not a symbolic link (hardlinks are regular files here)
+        public virtual string GetSymbolicLinkTarget(string path)
+        {
+            Ensure.That(path, () => path).IsValidPath(PathValidationType.CurrentOs);
+
+            var fileInfo = new FileInfo(path);
+
+            // Attributes of a missing path report every flag, so check Exists first (it stays true for a broken link)
+            if (!fileInfo.Exists || !fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                return null;
+            }
+
+            // Windows reparse points that are not links (dedup, cloud placeholders) have no target
+            var linkTarget = fileInfo.LinkTarget;
+
+            if (linkTarget == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var finalTarget = fileInfo.ResolveLinkTarget(true)?.FullName;
+
+                if (finalTarget != null)
+                {
+                    return finalTarget;
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Logger.Trace(ex, "Unable to resolve the final symlink target of {0}", path);
+            }
+
+            // Looping chain or unresolvable hop: report the first hop, made absolute against the link's own folder
+            return Path.GetFullPath(linkTarget, Path.GetDirectoryName(fileInfo.FullName));
+        }
+
         public virtual bool TryCreateRefLink(string source, string destination)
         {
             return false;

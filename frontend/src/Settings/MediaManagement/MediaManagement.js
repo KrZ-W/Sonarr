@@ -341,6 +341,24 @@ class MediaManagement extends Component {
                         />
                       </FormGroup>
 
+                      {/* krzw(symlink-import-guard) */}
+                      <FormGroup
+                        advancedSettings={advancedSettings}
+                        isAdvanced={true}
+                        size={sizes.MEDIUM}
+                      >
+                        <FormLabel>{translate('RejectSymlinkImportSources')}</FormLabel>
+
+                        <FormInputGroup
+                          type={inputTypes.CHECK}
+                          name="rejectSymlinkImportSources"
+                          helpText={translate('RejectSymlinkImportSourcesHelpText')}
+                          helpTextWarning={translate('RejectSymlinkImportSourcesHelpTextWarning')}
+                          onChange={onInputChange}
+                          {...settings.rejectSymlinkImportSources}
+                        />
+                      </FormGroup>
+
                       <FormGroup
                         advancedSettings={advancedSettings}
                         isAdvanced={true}

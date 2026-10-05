@@ -67,6 +67,9 @@ namespace NzbDrone.Core.Configuration
         // krzw(grabbed-release-title)
         bool ScoreFilesByGrabbedReleaseTitle { get; set; }
 
+        // krzw(symlink-import-guard)
+        bool RejectSymlinkImportSources { get; set; }
+
         // Permissions (Media Management)
         bool SetPermissionsLinux { get; set; }
         string ChmodFolder { get; set; }

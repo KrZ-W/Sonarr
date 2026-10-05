@@ -23,6 +23,7 @@ versioning scheme, see [`../FORK.md`](../FORK.md). For the release history, see
 | [Audio Track Retag](features/audio-track-retag.md) | Post-import header-only `mkvpropedit` rewrite of the mistagged MKV audio-track language tags from the verification record, per episode; hardlink-aware modes, outcome stored per file, manual per-file command |
 | [Grabbed Release Title](features/grabbed-release-title.md) | The release title a file was grabbed under is stored on the file and, opt-in, used to score its custom formats when it beats the scene name / original file name; scores can only go up, naming is unchanged, manual backfill command |
 | [Per-Profile Size Limits](features/profile-size-limits.md) | Each quality profile can override the min / preferred / max MB-per-minute size limits of any quality or group it contains; UI inputs in the profile editor, no migration |
+| [Symlink Import Guard](features/symlink-import-guard.md) | Import candidates that are symbolic links are rejected (reason names the link target, Warn log), hardlinks unaffected; setting on by default, off for rclone / debrid setups |
 | [Completed Download Handling](features/completed-download-handling.md) | Configurable CDH interval + per-run logging + stuck `ImportPending` self-heal |
 | [Regional Language Parsing](features/regional-language-parsing.md) | `en-CA` / `fr-CA` parsing entries |
 | [Configurable Indexer Cooldown](features/configurable-indexer-cooldown.md) | Editable indexer back-off/escalation schedule |
