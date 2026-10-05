@@ -39,6 +39,7 @@ namespace NzbDrone.Common.Disk
         string ReadAllText(string filePath);
         byte[] ReadAllBytes(string filePath);  // krzw(audio-language-verification)
         long GetHardLinkCount(string path);  // krzw(audio-track-retag): 0 when the platform cannot tell
+        string GetSymbolicLinkTarget(string path);  // krzw(symlink-import-guard): null when the path is not a symbolic link
         void WriteAllText(string filename, string contents);
         void FolderSetLastWriteTime(string path, DateTime dateTime);
         void FileSetLastWriteTime(string path, DateTime dateTime);

@@ -40,6 +40,9 @@ namespace Sonarr.Api.V3.Config
         // krzw(grabbed-release-title)
         public bool ScoreFilesByGrabbedReleaseTitle { get; set; }
 
+        // krzw(symlink-import-guard)
+        public bool RejectSymlinkImportSources { get; set; }
+
         // krzw(audio-language-verification)
         public bool AudioLanguageVerificationEnabled { get; set; }
         public string AudioLanguageVerificationEndpoint { get; set; }
@@ -91,6 +94,9 @@ namespace Sonarr.Api.V3.Config
 
                 // krzw(grabbed-release-title)
                 ScoreFilesByGrabbedReleaseTitle = model.ScoreFilesByGrabbedReleaseTitle,
+
+                // krzw(symlink-import-guard)
+                RejectSymlinkImportSources = model.RejectSymlinkImportSources,
 
                 // krzw(audio-language-verification)
                 AudioLanguageVerificationEnabled = model.AudioLanguageVerificationEnabled,

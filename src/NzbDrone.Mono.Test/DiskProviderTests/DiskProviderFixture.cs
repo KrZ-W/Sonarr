@@ -139,6 +139,119 @@ namespace NzbDrone.Mono.Test.DiskProviderTests
             File.ReadAllText(destination).Should().Be("Some content");
         }
 
+        // krzw(symlink-import-guard): GetSymbolicLinkTarget against real links
+        private string GivenLinkFolders(out string library, out string downloads)
+        {
+            var root = GetTempFilePath();
+            library = Path.Combine(root, "library");
+            downloads = Path.Combine(root, "downloads");
+            Directory.CreateDirectory(library);
+            Directory.CreateDirectory(downloads);
+
+            var real = Path.Combine(library, "real.mkv");
+            File.WriteAllText(real, "Some content");
+
+            return real;
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_null_for_regular_file()
+        {
+            var real = GivenLinkFolders(out _, out _);
+
+            Subject.GetSymbolicLinkTarget(real).Should().BeNull();
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_null_for_hardlink()
+        {
+            var real = GivenLinkFolders(out _, out var downloads);
+            var hardlink = Path.Combine(downloads, "hardlink.mkv");
+
+            Subject.TryCreateHardLink(real, hardlink).Should().BeTrue();
+
+            Subject.GetHardLinkCount(hardlink).Should().Be(2);
+            Subject.GetSymbolicLinkTarget(hardlink).Should().BeNull();
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_null_for_missing_path()
+        {
+            var real = GivenLinkFolders(out _, out _);
+
+            Subject.GetSymbolicLinkTarget(real + ".missing").Should().BeNull();
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_absolute_target()
+        {
+            var real = GivenLinkFolders(out _, out var downloads);
+            var link = Path.Combine(downloads, "link.mkv");
+
+            File.CreateSymbolicLink(link, real);
+
+            Subject.GetSymbolicLinkTarget(link).Should().Be(real);
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_resolve_relative_target_against_link_folder()
+        {
+            var real = GivenLinkFolders(out _, out var downloads);
+            var link = Path.Combine(downloads, "link.mkv");
+
+            File.CreateSymbolicLink(link, Path.Combine("..", "library", "real.mkv"));
+
+            Subject.GetSymbolicLinkTarget(link).Should().Be(real);
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_follow_chain_to_final_target()
+        {
+            var real = GivenLinkFolders(out _, out var downloads);
+            var first = Path.Combine(downloads, "first.mkv");
+            var second = Path.Combine(downloads, "second.mkv");
+
+            File.CreateSymbolicLink(second, Path.Combine("..", "library", "real.mkv"));
+            File.CreateSymbolicLink(first, "second.mkv");
+
+            Subject.GetSymbolicLinkTarget(first).Should().Be(real);
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_target_of_broken_link()
+        {
+            GivenLinkFolders(out var library, out var downloads);
+            var link = Path.Combine(downloads, "broken.mkv");
+
+            File.CreateSymbolicLink(link, Path.Combine("..", "library", "gone.mkv"));
+
+            Subject.GetSymbolicLinkTarget(link).Should().Be(Path.Combine(library, "gone.mkv"));
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_return_first_hop_of_looping_links()
+        {
+            GivenLinkFolders(out _, out var downloads);
+            var first = Path.Combine(downloads, "loop1.mkv");
+            var second = Path.Combine(downloads, "loop2.mkv");
+
+            File.CreateSymbolicLink(first, "loop2.mkv");
+            File.CreateSymbolicLink(second, "loop1.mkv");
+
+            Subject.GetSymbolicLinkTarget(first).Should().Be(second);
+        }
+
+        [Test]
+        public void GetSymbolicLinkTarget_should_only_look_at_the_file_itself()
+        {
+            GivenLinkFolders(out var library, out var downloads);
+            var linkedFolder = Path.Combine(downloads, "linked-folder");
+
+            Directory.CreateSymbolicLink(linkedFolder, library);
+
+            Subject.GetSymbolicLinkTarget(Path.Combine(linkedFolder, "real.mkv")).Should().BeNull();
+        }
+
         private void GivenSpecialMount(string rootDir)
         {
             Mocker.GetMock<ISymbolicLinkResolver>()
