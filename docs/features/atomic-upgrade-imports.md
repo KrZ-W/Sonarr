@@ -102,7 +102,7 @@ ordering, so the same class of loss applied and is what this feature removes.
 
 ## Source
 
-Commit: `9326bd91d`. Key files:
+Commit: `cd5cfd3c3`. Key files:
 `MediaFiles/UpgradeMediaFileService.cs` (park / finalize / rollback),
 `MediaFiles/PendingUpgradeFile.cs`, `MediaFiles/EpisodeFileMoveResult.cs`,
 `MediaFiles/EpisodeImport/ImportApprovedEpisodes.cs` (commit orchestration),

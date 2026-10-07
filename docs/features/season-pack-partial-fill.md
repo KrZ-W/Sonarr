@@ -88,7 +88,7 @@ declined v4 request was found (searched 2026-09-09).
 
 ## Source
 
-Commit: `06fcf377e`. Key files:
+Commit: `5c354cad0`. Key files:
 `MediaFiles/SeasonPackUpgradeType.cs` (enum `All`/`Threshold`/`Any`),
 `DecisionEngine/Specifications/UpgradeDiskSpecification.cs`,
 `DecisionEngine/Specifications/Search/SingleEpisodeSearchMatchSpecification.cs`,

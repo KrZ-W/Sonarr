@@ -95,8 +95,8 @@ per-CF **Priority** flag adds.
 
 ## Source
 
-Commits: `91c955a20` (per-CF flag), `38a5f9b68` (grab), `453ff6cd3` (import),
-`98154b879` (rejection messages), `7114d0fab` (tests). Key files:
+Commits: `b42cf45d0` (per-CF flag), `05d96fcaa` (grab), `0fbb821e6` (import),
+`5b6948336` (rejection messages), `5f108c5d7` (tests). Key files:
 `Profiles/ProfileFormatItem.cs`, `Profiles/Qualities/QualityProfile.cs`,
 `DecisionEngine/Specifications/UpgradableSpecification.cs`,
 `DecisionEngine/DownloadDecisionComparer.cs`,

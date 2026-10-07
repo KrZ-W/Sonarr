@@ -63,6 +63,6 @@ No open or declined upstream Sonarr request matches (searched 2026-09-09).
 
 ## Source
 
-Commit: `17d4dd231`. Key files:
+Commit: `1b5d15203`. Key files:
 `MediaFiles/EpisodeImport/Specifications/MinimumCustomFormatScoreSpecification.cs`,
 `MediaFiles/EpisodeImport/ImportRejectionReason.cs`.

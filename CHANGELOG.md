@@ -12,6 +12,31 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 _Nothing yet._
 
+## [v4.0.20.3014+krzw.1] — based on Sonarr 4.0.20.3014
+
+### Changed
+
+- **Rebased onto Sonarr 4.0.20.3014** (from 4.0.19.2979; 20 upstream commits, no conflicts
+  in fork code). All fork features are unchanged, the fork's database migrations (218-220)
+  and the build SDK pin are unaffected, and the fork commit hashes cited in
+  `docs/features/*.md` were refreshed.
+- **Upstream: Trusted Networks** (*Settings → General → Security*). Forwarded headers are
+  now honoured only from the configured networks; upstream no longer trusts every private
+  range (10/8, 172.16/12, 192.168/16, fc00::/7) or IPv6 link-local (fe80::/10) as a proxy. **Behind a reverse proxy with
+  Authentication Required set to "Disabled for Local Addresses", add the proxy's network
+  here, or LAN users get a login prompt.** Restart after changing it.
+- **Upstream: Allowed Hosts** (opt-in hostname validation against DNS rebinding), plus a
+  health warning while it is unset and authentication is not fully enabled. If you set it,
+  list every name clients use: the browser's host name and the container names Prowlarr
+  and other apps call. Restart after changing it.
+- **Other upstream fixes:** zip-slip guard on archive extraction (backup restore); SQLite
+  busy timeout raised to 1000 ms; unknown language ids stored in the database read as
+  Unknown instead of failing; the free-space check runs only after the cheaper
+  specifications pass; `.strm` / `.m3u` files are no longer probed; Jellyfin 12+, Emby,
+  Freebox and Discord-timestamp fixes.
+
+Container image: `ghcr.io/krz-w/sonarr:4.0.20.3014-krzw.1`.
+
 ## [v4.0.19.2979+krzw.25] — based on Sonarr 4.0.19.2979
 
 ### Added
@@ -649,7 +674,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.19.2979+krzw.25...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.20.3014+krzw.1...HEAD
+[v4.0.20.3014+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.20.3014%2Bkrzw.1
 [v4.0.19.2979+krzw.25]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.25
 [v4.0.19.2979+krzw.24]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.24
 [v4.0.19.2979+krzw.23]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.23

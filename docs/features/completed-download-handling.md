@@ -99,9 +99,9 @@ No open or declined upstream Sonarr request matches the configurable interval or
 
 ## Source
 
-Commits: `e14b4a027` (configurable interval), `a72681500` (run logging),
-`e65ca9710` (ImportPending self-heal in `Check`), `9928525f5` (its regression tests),
-`68fad3665` (same guard in `Import`, the path `ImportPending` items actually take). Key files:
+Commits: `fb6a96dda` (configurable interval), `cd84954de` (run logging),
+`a5bdfc662` (ImportPending self-heal in `Check`), `2ac96e7be` (its regression tests),
+`fb0c60c0a` (same guard in `Import`, the path `ImportPending` items actually take). Key files:
 `Configuration/ConfigService.cs`, `Jobs/TaskManager.cs`
 (`GetRefreshMonitoredInterval()`), `Download/DownloadProcessingService.cs`,
 `Sonarr.Api.V3/Config/DownloadClientConfigResource.cs`,

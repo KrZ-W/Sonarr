@@ -59,7 +59,7 @@ No open or declined upstream Sonarr request for an editable back-off schedule wa
 
 ## Source
 
-Commit: `94de4c188`. Key files: `Configuration/ConfigService.cs`,
+Commit: `211bad3f3`. Key files: `Configuration/ConfigService.cs`,
 `Indexers/IndexerCooldownPeriods.cs` (parser shared by service, housekeeper and validator),
 `Housekeeping/Housekeepers/FixFutureIndexerStatusTimes.cs`,
 `Indexers/IndexerStatusService.cs`, `ThingiProvider/Status/ProviderStatusServiceBase.cs`,

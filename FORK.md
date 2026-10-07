@@ -8,10 +8,10 @@ single person for a private *arr stack and is not affiliated with the Sonarr tea
 Several features are shared with the sibling [KrZ-W/Radarr](https://github.com/KrZ-W/Radarr)
 fork; this document describes the Sonarr versions specifically.
 
-- **Upstream base:** Sonarr `4.0.19.2979`
+- **Upstream base:** Sonarr `4.0.20.3014`
 - **Primary branch:** `personal/all-features-main` (all features merged together)
 - **Container image:** `ghcr.io/krz-w/sonarr`
-- **Current fork version:** `v4.0.19.2979+krzw.25`
+- **Current fork version:** `v4.0.20.3014+krzw.1`
 
 > The stock upstream `README.md` is preserved below this fork section. Everything
 > KrZ-W-specific lives in [`docs/`](docs/) and [`CHANGELOG.md`](CHANGELOG.md).
@@ -117,6 +117,9 @@ with details. This fork does not submit changes upstream.
   (`// krzw(atomic-upgrade): ...`), so fork hunks are identifiable at rebase time;
   `git grep -n 'krzw('` lists them. Files that cannot hold comments (`en.json`,
   generated `*.css.d.ts`) are the only unmarked ones.
-- Each feature lives on its own `feature/*` or `fix/*` branch cut from the upstream
-  release tag the fork is based on (`-main` suffix = upstream main line), and is merged into
-  `personal/all-features-main`. See [CHANGELOG.md](CHANGELOG.md) for per-feature history.
+- Each feature lives on its own `feature/*` or `fix/*` branch, cut from the upstream
+  release tag that was current when work on it started (`-main` suffix = upstream main
+  line), and is merged into `personal/all-features-main`. A rebase onto a newer upstream
+  moves only the aggregate; topic branches stay on their original base (see
+  [docs/releasing.md](docs/releasing.md)). See [CHANGELOG.md](CHANGELOG.md) for per-feature
+  history.

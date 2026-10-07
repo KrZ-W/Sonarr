@@ -104,7 +104,7 @@ Related upstream Sonarr discussion (state as of 2026-09-09):
 
 ## Source
 
-Commit: `6499abf71`. Key files:
+Commit: `0df079615`. Key files:
 `CustomFormats/Specifications/AudioTitleSpecification.cs` (`ImplementationName = "Audio Title"`),
 `CustomFormats/CustomFormatInput.cs`, `CustomFormats/CustomFormatCalculationService.cs`,
 `MediaFiles/MediaInfo/MediaInfoModel.cs`, `MediaFiles/MediaInfo/VideoFileInfoReader.cs`.

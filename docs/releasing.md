@@ -6,8 +6,8 @@ How to cut a versioned release of the KrZ-W/Sonarr fork. See
 ## Version format recap
 
 ```
-git tag / GitHub release :  v<upstream-version>+krzw.<N>     e.g. v4.0.19.2979+krzw.2
-docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-krzw.2
+git tag / GitHub release :  v<upstream-version>+krzw.<N>     e.g. v4.0.20.3014+krzw.1
+docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.20.3014-krzw.1
 ```
 
 - `<upstream-version>` = the Sonarr version `personal/all-features-main` is rebased onto.
@@ -41,27 +41,27 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
 3. **Commit** the changelog (and any doc updates):
 
    ```bash
-   git commit -am "docs: release v4.0.19.2979+krzw.2"
+   git commit -am "docs: release v4.0.20.3014+krzw.1"
    git push origin personal/all-features-main
    ```
 
 4. **Tag and push the tag.** The `+` is fine in a git tag:
 
    ```bash
-   git tag -a 'v4.0.19.2979+krzw.2' -m 'Fork release based on Sonarr 4.0.19.2979'
-   git push origin 'v4.0.19.2979+krzw.2'
+   git tag -a 'v4.0.20.3014+krzw.1' -m 'Fork release based on Sonarr 4.0.20.3014'
+   git push origin 'v4.0.20.3014+krzw.1'
    ```
 
    This triggers `docker-release.yml`, which builds and pushes the immutable image tag
-   `ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.2` (it maps `+` → `-` automatically).
+   `ghcr.io/krz-w/sonarr:4.0.20.3014-krzw.1` (it maps `+` → `-` automatically).
 
 5. **Boot-test the release image before announcing it.** A green CI build is not
    proof the image runs — this fork's `v4.0.19.2979+krzw.1` image built green but
    crash-looped in production (fixed in `krzw.2` by pinning the build SDK):
 
    ```bash
-   docker pull ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.2
-   docker run -d --name sonarr-boot-test -p 18989:8989 ghcr.io/krz-w/sonarr:4.0.19.2979-krzw.2
+   docker pull ghcr.io/krz-w/sonarr:4.0.20.3014-krzw.1
+   docker run -d --name sonarr-boot-test -p 18989:8989 ghcr.io/krz-w/sonarr:4.0.20.3014-krzw.1
    sleep 20
    curl -sf http://localhost:18989/ping    # expect {"status":"OK"}
    docker rm -f sonarr-boot-test
@@ -73,10 +73,10 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
 6. **Create the GitHub release** from the tag, using the changelog section as the body:
 
    ```bash
-   gh release create 'v4.0.19.2979+krzw.2' \
+   gh release create 'v4.0.20.3014+krzw.1' \
      --repo KrZ-W/Sonarr \
-     --title 'v4.0.19.2979+krzw.2' \
-     --notes-file <(sed -n '/## \[v4.0.19.2979+krzw.2\]/,/## \[/p' CHANGELOG.md | sed '$d')
+     --title 'v4.0.20.3014+krzw.1' \
+     --notes-file <(sed -n '/## \[v4.0.20.3014+krzw.1\]/,/## \[/p' CHANGELOG.md | sed '$d')
    ```
 
    (Or paste the changelog section into the web UI.)
@@ -95,7 +95,7 @@ docker image tag         :  <upstream-version>-krzw.<N>      e.g. 4.0.19.2979-kr
    `git log --oneline <upstream-base>..HEAD`. Update the example versions in this file
    and in `FORK.md` at the same time.
 4. Re-verify the Dockerfile SDK pin still matches what upstream's `global.json` needs
-   (see `5bb406f4f` — the krzw.1 crash-loop), then boot-test (step 5 above) before
+   (see `560243988` — the krzw.1 crash-loop), then boot-test (step 5 above) before
    releasing.
 5. Add an `[Unreleased]` → new-version section noting the rebase, then release as
    `v<new-upstream-version>+krzw.1`.

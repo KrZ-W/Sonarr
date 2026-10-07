@@ -1,6 +1,6 @@
 # Grabbed Release Title
 
-> **Status:** stable · **Since:** unreleased (next fork release on `v4.0.19.2979`) · **Surface:** Settings → Media Management → *File Management* (advanced) → *Score Files by Grabbed Release Title*, `EpisodeFile.GrabbedReleaseTitle` (`GET /api/v3/episodefile?seriesId=N`), command `BackfillGrabbedReleaseTitles`
+> **Status:** stable · **Since:** `v4.0.19.2979+krzw.23` · **Surface:** Settings → Media Management → *File Management* (advanced) → *Score Files by Grabbed Release Title*, `EpisodeFile.GrabbedReleaseTitle` (`GET /api/v3/episodefile?seriesId=N`), command `BackfillGrabbedReleaseTitles`
 
 ## What it does
 

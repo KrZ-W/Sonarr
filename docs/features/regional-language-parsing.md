@@ -37,4 +37,4 @@ language-aware titles and matching; the two parsing entries here are a much narr
 
 ## Source
 
-Commit: `9034942c3`. Key file: `Parser/IsoLanguages.cs`.
+Commit: `a145ffd31`. Key file: `Parser/IsoLanguages.cs`.

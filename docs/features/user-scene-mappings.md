@@ -1,6 +1,6 @@
 # User Scene Mappings (User Alternative Titles)
 
-> **Status:** stable · **Since:** unreleased (next release on `4.0.19.2979` base) · **Surface:** API (`POST /api/v3/scenemapping/user/import`)
+> **Status:** stable · **Since:** `v4.0.19.2979+krzw.5` · **Surface:** API (`POST /api/v3/scenemapping/user/import`)
 
 ## What it does
 
@@ -180,14 +180,14 @@ affiliated with the Sonarr team and does not submit upstream):
 
 ## Source
 
-Commits: `7c8d9d636` (feature), plus the review fixes on `feat/user-alt-titles`
+Commits: `4ec3ce556` (feature), plus the review fixes on `feat/user-alt-titles`
 (non-throwing library guard, parse terms per upstream convention with both
 spellings, category-based folding). Key files:
 `DataAugmentation/Scene/SceneMappingService.cs` (`UpsertUserMappings` + guards +
 normalization), `Sonarr.Api.V3/SceneMappings/UserSceneMappingController.cs`
 (endpoint), `Sonarr.Api.V3/SceneMappings/UserSceneMappingImportResource.cs` (DTOs).
 
-Refactor: `212a9dea2` moved the pipeline into Core. Key files:
+Refactor: `d47c73a03` moved the pipeline into Core. Key files:
 `DataAugmentation/Scene/UserSceneMappingImportService.cs`,
 `DataAugmentation/Scene/UserSceneMappingImportRequest.cs`,
 `DataAugmentation/Scene/UserSceneMappingImportResult.cs` (incl. `UserSceneMappingUpsertResult`),
