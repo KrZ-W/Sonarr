@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FizzWare.NBuilder;
@@ -8,6 +9,8 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
+using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -427,6 +430,89 @@ namespace NzbDrone.Core.Test.MediaFiles
             Mocker.GetMock<IDiskProvider>().Verify(v => v.MoveFile(newPath, sourcePath, false), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(v => v.MoveFile(originalPath + ParkedFileSuffix, originalPath, false), Times.Once());
             Mocker.GetMock<IDiskProvider>().Verify(v => v.DeleteFile(newPath), Times.Never());
+        }
+
+        // krzw(atomic-upgrade) F11a: EpisodeFile.Episodes is a lazy load that queries
+        // "WHERE EpisodeFileId = <this file>". After the replacement row is added, EpisodeService re-points
+        // the episodes at it, so a lazy load resolved during FinalizeUpgrade comes back empty. This double
+        // behaves exactly like that: full list until Relinked, empty afterwards.
+        private class RelinkableLazyEpisodes : LazyLoaded<List<Episode>>
+        {
+            private readonly List<Episode> _episodes;
+
+            public RelinkableLazyEpisodes(List<Episode> episodes)
+            {
+                _episodes = episodes;
+            }
+
+            public bool Relinked { get; set; }
+
+            public override void LazyLoad()
+            {
+                if (!IsLoaded)
+                {
+                    _value = Relinked ? new List<Episode>() : _episodes;
+                    IsLoaded = true;
+                }
+            }
+        }
+
+        private RelinkableLazyEpisodes GivenOldFileWithLazyEpisodes()
+        {
+            GivenSingleEpisodeWithSingleEpisodeFile();
+
+            var oldFile = _localEpisode.Episodes.First().EpisodeFile.Value;
+            var lazy = new RelinkableLazyEpisodes(_localEpisode.Episodes.ToList());
+
+            oldFile.Episodes = lazy;
+            oldFile.Series = _localEpisode.Series;
+
+            return lazy;
+        }
+
+        [Test]
+        public void should_resolve_the_old_files_episodes_before_the_replacement_is_added()
+        {
+            var lazy = GivenOldFileWithLazyEpisodes();
+
+            var result = Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+
+            // ImportApprovedEpisodes adds the replacement row here; EpisodeService re-points the episodes.
+            lazy.Relinked = true;
+
+            Subject.FinalizeUpgrade(result);
+
+            Mocker.GetMock<IMediaFileService>()
+                  .Verify(v => v.Delete(It.Is<EpisodeFile>(f => f.Episodes.Value.Count == 1 && f.Episodes.Value[0].Id == _localEpisode.Episodes[0].Id), DeleteMediaFileReason.Upgrade), Times.Once());
+        }
+
+        [Test]
+        public void should_publish_the_upgrade_delete_event_with_the_episodes_attached()
+        {
+            // Real MediaFileService wired in: the event the history and webhook handlers consume
+            Mocker.SetConstant<IMediaFileService>(Mocker.Resolve<MediaFileService>());
+
+            var lazy = GivenOldFileWithLazyEpisodes();
+
+            var result = Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+            lazy.Relinked = true;
+            Subject.FinalizeUpgrade(result);
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(v => v.PublishEvent(It.Is<EpisodeFileDeletedEvent>(e => e.Reason == DeleteMediaFileReason.Upgrade && e.EpisodeFile.Episodes.Value.Count == 1)), Times.Once());
+        }
+
+        [Test]
+        public void should_attach_the_local_episodes_when_the_lazy_load_is_already_empty()
+        {
+            var lazy = GivenOldFileWithLazyEpisodes();
+            lazy.Relinked = true;
+
+            var result = Subject.UpgradeEpisodeFile(_episodeFile, _localEpisode);
+            Subject.FinalizeUpgrade(result);
+
+            Mocker.GetMock<IMediaFileService>()
+                  .Verify(v => v.Delete(It.Is<EpisodeFile>(f => f.Episodes.Value.Count == 1), DeleteMediaFileReason.Upgrade), Times.Once());
         }
     }
 }

@@ -71,5 +71,34 @@ namespace NzbDrone.Core.Test.HistoryTests
             Mocker.GetMock<IHistoryRepository>()
                 .Verify(v => v.Insert(It.Is<EpisodeHistory>(h => h.SourceTitle == Path.GetFileNameWithoutExtension(localEpisode.Path))));
         }
+
+        // krzw(atomic-upgrade) F11a: one episodeFileDeleted/Upgrade row per episode of the replaced file
+        [Test]
+        public void should_record_an_upgrade_delete_row_for_each_episode_of_the_old_file()
+        {
+            var episodes = Builder<Episode>.CreateListOfSize(2).Build().ToList();
+            var episodeFile = Builder<EpisodeFile>.CreateNew()
+                                                  .With(f => f.Path = @"C:\Test\TV\Series\old.mkv")
+                                                  .With(f => f.Episodes = episodes)
+                                                  .Build();
+
+            Subject.Handle(new EpisodeFileDeletedEvent(episodeFile, DeleteMediaFileReason.Upgrade));
+
+            Mocker.GetMock<IHistoryRepository>()
+                  .Verify(v => v.Insert(It.Is<EpisodeHistory>(h => h.EventType == EpisodeHistoryEventType.EpisodeFileDeleted && h.Data["Reason"] == "Upgrade")), Times.Exactly(2));
+        }
+
+        [Test]
+        public void should_record_nothing_when_the_deleted_file_has_no_episodes_attached()
+        {
+            // The pre-fix symptom: the lazy load resolved after the episodes were re-pointed
+            var episodeFile = Builder<EpisodeFile>.CreateNew()
+                                                  .With(f => f.Episodes = new List<Episode>())
+                                                  .Build();
+
+            Subject.Handle(new EpisodeFileDeletedEvent(episodeFile, DeleteMediaFileReason.Upgrade));
+
+            Mocker.GetMock<IHistoryRepository>().Verify(v => v.Insert(It.IsAny<EpisodeHistory>()), Times.Never());
+        }
     }
 }

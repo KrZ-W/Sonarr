@@ -10,6 +10,7 @@ using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.AudioLanguage;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Profiles.Qualities;
 
 namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augmenters.Language
 {
@@ -26,6 +27,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
         private readonly IAudioLanguageProbeCache _cache;
         private readonly IHistoryService _historyService;
         private readonly ICustomFormatCalculationService _formatCalculator;
+        private readonly IQualityProfileService _qualityProfileService;
         private readonly AudioLanguageTriggerPolicy _policy;
         private readonly Logger _logger;
 
@@ -35,6 +37,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
                                              IAudioLanguageProbeCache cache,
                                              IHistoryService historyService,
                                              ICustomFormatCalculationService formatCalculator,
+                                             IQualityProfileService qualityProfileService,
                                              Logger logger)
         {
             _configService = configService;
@@ -43,6 +46,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
             _cache = cache;
             _historyService = historyService;
             _formatCalculator = formatCalculator;
+            _qualityProfileService = qualityProfileService;
             _policy = new AudioLanguageTriggerPolicy();
             _logger = logger;
         }
@@ -70,7 +74,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
 
             // Verification is an import-time decision: files already in the library (rescan, DB rebuild)
             // are never probed and never get their stored record rewritten.
-            if (localEpisode.ExistingFile || localEpisode.MediaInfo == null || localEpisode.Series?.QualityProfile?.Value == null)
+            if (localEpisode.ExistingFile || localEpisode.MediaInfo == null || localEpisode.Series == null)
             {
                 return null;
             }
@@ -82,7 +86,17 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
                 return null;
             }
 
-            var profile = localEpisode.Series.QualityProfile.Value;
+            // Series.QualityProfile is a HasOne lazy load: it queries the row straight from the database, so
+            // its FormatItems carry Id-only CustomFormats with no Specifications (CustomFormatIntConverter).
+            // Only QualityProfileRepository.Query hydrates them. Read through it, or every language condition
+            // is invisible and the fast path below ("no language format, never probe") always wins.
+            var profile = GetProfile(localEpisode);
+
+            if (profile == null)
+            {
+                return null;
+            }
+
             var originalLanguage = localEpisode.Series.OriginalLanguage ?? Languages.Language.Unknown;
             var evidence = tracks.Select(t => t.TaggedLanguage).Where(l => l != null).Distinct().ToList();
             var formatLanguages = GetFormatLanguages(profile, out var hasLanguageFormat);
@@ -96,7 +110,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
                 OriginalLanguage = originalLanguage,
                 HasLanguageCustomFormat = hasLanguageFormat,
                 CustomFormatLanguages = formatLanguages,
-                ImpendingRejection = hasLanguageFormat && WouldBeRejected(localEpisode, evidence),
+                ImpendingRejection = hasLanguageFormat && WouldBeRejected(localEpisode, profile, evidence),
                 ReleaseGroup = GetReleaseGroup(localEpisode),
                 VerifyTaggedMode = _configService.AudioLanguageVerificationVerifyTagged,
                 VerifyTaggedReleaseGroups = _configService.AudioLanguageVerificationVerifyTaggedGroups
@@ -202,7 +216,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
             return claimed.Distinct().ToList();
         }
 
-        private static List<Languages.Language> GetFormatLanguages(Profiles.Qualities.QualityProfile profile, out bool hasLanguageFormat)
+        private static List<Languages.Language> GetFormatLanguages(QualityProfile profile, out bool hasLanguageFormat)
         {
             hasLanguageFormat = false;
             var languages = new List<Languages.Language>();
@@ -237,9 +251,8 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
         // SCORING ladder, so the predictor must use ParseCustomFormatForScoring too. With the legacy ladder it
         // over-predicted rejection (the Pareto rule can only raise the score) and fired a needless Whisper probe
         // for exactly the files the grabbed-release-title feature rescues.
-        private bool WouldBeRejected(LocalEpisode localEpisode, List<Languages.Language> evidence)
+        private bool WouldBeRejected(LocalEpisode localEpisode, QualityProfile profile, List<Languages.Language> evidence)
         {
-            var profile = localEpisode.Series.QualityProfile.Value;
             var previous = localEpisode.Languages;
 
             try
@@ -259,6 +272,24 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport.Aggregation.Aggregators.Augment
             {
                 localEpisode.Languages = previous;
             }
+        }
+
+        private QualityProfile GetProfile(LocalEpisode localEpisode)
+        {
+            var series = localEpisode.Series;
+
+            if (series.QualityProfileId > 0)
+            {
+                var hydrated = _qualityProfileService.Get(series.QualityProfileId);
+
+                if (hydrated != null)
+                {
+                    return hydrated;
+                }
+            }
+
+            // Tests and callers that attach a fully built profile themselves
+            return series.QualityProfile?.Value;
         }
 
         private static string GetReleaseGroup(LocalEpisode localEpisode)

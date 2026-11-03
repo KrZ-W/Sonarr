@@ -71,6 +71,19 @@ namespace NzbDrone.Core.MediaFiles
             {
                 var file = existingFile.First();
                 var episodeFilePath = Path.Combine(localEpisode.Series.Path, file.RelativePath);
+
+                // krzw(atomic-upgrade): the old row is deleted in FinalizeUpgrade, AFTER the replacement's row
+                // was added and EpisodeService re-pointed the episodes at it. The Episodes lazy load queries
+                // "WHERE EpisodeFileId = <old id>", so resolved that late it comes back empty and the
+                // episodeFileDeleted/Upgrade history rows and webhooks silently vanish. Resolve it now, while
+                // the episodes still point here (upstream deletes first, so it never had this problem).
+                file.Episodes?.LazyLoad();
+
+                if (file.Episodes?.Value == null || file.Episodes.Value.Empty())
+                {
+                    file.Episodes = localEpisode.Episodes.Where(e => e.EpisodeFileId == file.Id).ToList();
+                }
+
                 var subfolder = rootFolder.GetRelativePath(_diskProvider.GetParentFolder(episodeFilePath));
 
                 // krzw(atomic-upgrade)

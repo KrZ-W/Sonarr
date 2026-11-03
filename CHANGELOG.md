@@ -10,7 +10,30 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Audio Language Verification never probed in Sonarr (F11b).** 0 of 22,408 episode files on
+  sonarr-fr ever got a verification record while the same feature works in Radarr. The augmenter
+  read the profile from `Series.QualityProfile.Value`, a `HasOne` lazy load that queries the row
+  directly and bypasses `QualityProfileRepository.Query`, the only place that swaps the Id-only
+  `CustomFormat` stubs (`CustomFormatIntConverter`) for the real formats. With no
+  `Specifications` on any format item, "no language custom format → never probe" always won.
+  `AugmentLanguageFromAudioProbe` now resolves the profile through `IQualityProfileService.Get`
+  (hydrated) and falls back to the series' profile only when the service has none. Radarr is not
+  affected in practice because its profiles carry a `Language` column that satisfies the fast
+  path on its own; its custom-format branch has the same latent gap on `MovieRepository.Query`
+  joins.
+- **Upgrades wrote no `episodeFileDeleted` / Upgrade history rows and sent no delete webhooks
+  (F11a).** Since the atomic-upgrade reordering the old row is deleted in `FinalizeUpgrade`,
+  after the replacement row is added and `EpisodeService` re-points the episodes at it. The
+  `EpisodeFile.Episodes` lazy load queries `WHERE EpisodeFileId = <old id>`, so resolved that
+  late it is empty and both the history handler and the notification handler skip the file.
+  `UpgradeMediaFileService.UpgradeEpisodeFile` now resolves the episodes before parking the
+  file (and attaches the matching local episodes if the load is already empty).
+- Tests: `AugmentLanguageFromAudioProbeFixture` (Id-only lazy profile still probes, language-free
+  profile still skips, Contradiction trigger, service fallback), `UpgradeMediaFileServiceFixture`
+  (episodes resolved before the add, delete event carries them, empty-load fallback),
+  `HistoryServiceFixture` (one Upgrade row per episode, nothing without episodes).
 
 ## [v4.0.20.3014+krzw.2] — based on Sonarr 4.0.20.3014
 
