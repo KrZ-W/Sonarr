@@ -10,7 +10,26 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Symlink Import Guard: every import path now refuses a symbolic link, and a link to the
+  episode's own file counts as imported.** Incident 2026-11-02 on this stack: a single-episode
+  seed payload that the seed pipeline had replaced by a link into the library was imported
+  **as a 130-byte symlink** under the wrong episode. The decision spec was the only check, and the final
+  Manual Import step (`ManualImport` command, UI or API) builds approved decisions without
+  running the specs; a payload relinked between the decision and the copy slipped past it too.
+  - One shared `SymlinkImportGuard` now backs three layers: the spec, a gate in
+    `ImportApprovedEpisodes.Import` (the funnel every entry point uses: completed download handling,
+    *Downloaded Episodes Scan*, library rescan, Manual Import) and a last check in the file mover right
+    before the transfer, which throws `SymlinkImportSourceException` ("Failed to import …").
+  - The reason now says what the link resolves to: `SourceIsSymlinkToLibraryFile` (… *which is
+    already the library file of* `<Series> SxxEyy`) or `SourceIsSymlinkToCurrentFile` (… *the current
+    file of this episode*); unknown targets keep `SourceIsSymlink`.
+  - Queue items whose payload is a link to **that same episode's current file** no longer sit in
+    *Import Pending* / *Import Blocked* forever: completed download handling marks the download
+    imported (download history row, `DownloadCompletedEvent`, client removal per settings) and
+    logs once at Info. Links to another episode's file stay blocked with the new, explicit reason.
+  - Docs: `docs/features/symlink-import-guard.md` (layers, reasons table, already-imported rule).
 
 ## [v4.0.20.3014+krzw.1] — based on Sonarr 4.0.20.3014
 

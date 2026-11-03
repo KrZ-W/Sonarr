@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
@@ -375,6 +376,142 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             Mocker.GetMock<ISeriesService>()
                   .Setup(v => v.GetSeries(It.IsAny<int>()))
                   .Returns(BuildRemoteEpisode().Series);
+
+            Subject.Import(_trackedDownload);
+
+            AssertImported();
+        }
+
+        // krzw(symlink-import-guard): a seed payload replaced by links to the very files the episodes already
+        // have is nothing left to import; the download is treated as imported instead of blocked forever.
+        private ImportResult GivenResult(Episode episode, ImportRejectionReason? reason, string file = null)
+        {
+            var localEpisode = new LocalEpisode { Path = file ?? $@"C:\TestPath\Droned.S01E{episode.Id:00}.mkv", Episodes = new List<Episode> { episode } };
+
+            if (reason == null)
+            {
+                return new ImportResult(new ImportDecision(localEpisode), new EpisodeFile { Id = episode.Id });
+            }
+
+            return new ImportResult(new ImportDecision(localEpisode, new ImportRejection(reason.Value, "Source is a symbolic link → target")), "Source is a symbolic link → target");
+        }
+
+        private void GivenImportResults(params ImportResult[] results)
+        {
+            Mocker.GetMock<IDownloadedEpisodesImportService>()
+                  .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Series>(), It.IsAny<DownloadClientItem>()))
+                  .Returns(results.ToList());
+        }
+
+        [Test]
+        public void should_mark_as_imported_when_every_file_is_a_link_to_the_episodes_current_file()
+        {
+            var episode1 = new Episode { Id = 1, EpisodeFileId = 10 };
+            var episode2 = new Episode { Id = 2, EpisodeFileId = 11 };
+            var files = new List<EpisodeFile> { new EpisodeFile { Id = 10 }, new EpisodeFile { Id = 11 } };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { episode1, episode2 };
+
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodes(It.IsAny<IEnumerable<int>>()))
+                  .Returns(new List<Episode> { episode1, episode2 });
+
+            Mocker.GetMock<IMediaFileService>()
+                  .Setup(s => s.GetFiles(It.Is<IEnumerable<int>>(ids => ids.OrderBy(i => i).SequenceEqual(new[] { 10, 11 }))))
+                  .Returns(files);
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlinkToCurrentFile),
+                               GivenResult(episode2, ImportRejectionReason.SourceIsSymlinkToCurrentFile));
+
+            Subject.Import(_trackedDownload);
+
+            AssertImported();
+
+            Mocker.GetMock<IEventAggregator>()
+                  .Verify(v => v.PublishEvent(It.Is<DownloadCompletedEvent>(e => e.EpisodeFiles.Count == 2 && e.SeriesId == _trackedDownload.RemoteEpisode.Series.Id)), Times.Once());
+
+            _trackedDownload.StatusMessages.Should().BeEmpty();
+        }
+
+        [Test]
+        public void should_mark_as_imported_when_imports_and_own_file_links_together_cover_every_episode()
+        {
+            var episode1 = new Episode { Id = 1, EpisodeFileId = 10 };
+            var episode2 = new Episode { Id = 2, EpisodeFileId = 11 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { episode1, episode2 };
+
+            GivenImportResults(GivenResult(episode1, null),
+                               GivenResult(episode2, ImportRejectionReason.SourceIsSymlinkToCurrentFile));
+
+            Subject.Import(_trackedDownload);
+
+            AssertImported();
+        }
+
+        [Test]
+        public void should_stay_blocked_when_a_link_points_at_another_episodes_library_file()
+        {
+            // The incident: a one-off numbered release linked to the next episode's file
+            var episode1 = new Episode { Id = 1 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { episode1 };
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlinkToLibraryFile));
+
+            Subject.Import(_trackedDownload);
+
+            AssertNotImported();
+            _trackedDownload.StatusMessages.Should().NotBeEmpty();
+        }
+
+        [Test]
+        public void should_stay_blocked_for_a_plain_symlink()
+        {
+            var episode1 = new Episode { Id = 1 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { episode1 };
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlink));
+
+            Subject.Import(_trackedDownload);
+
+            AssertNotImported();
+        }
+
+        [Test]
+        public void should_stay_blocked_when_own_file_links_cover_only_some_episodes()
+        {
+            var episode1 = new Episode { Id = 1, EpisodeFileId = 10 };
+            var episode2 = new Episode { Id = 2 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode> { episode1, episode2 };
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlinkToCurrentFile),
+                               GivenResult(episode2, ImportRejectionReason.Unknown));
+
+            Subject.Import(_trackedDownload);
+
+            AssertNotImported();
+        }
+
+        [Test]
+        public void should_require_every_file_to_be_an_own_file_link_when_nothing_was_parsed_from_the_grab()
+        {
+            var episode1 = new Episode { Id = 1, EpisodeFileId = 10 };
+            var episode2 = new Episode { Id = 2, EpisodeFileId = 11 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode>();
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlinkToCurrentFile),
+                               GivenResult(episode2, ImportRejectionReason.SourceIsSymlink));
+
+            Subject.Import(_trackedDownload);
+
+            AssertNotImported();
+        }
+
+        [Test]
+        public void should_mark_as_imported_when_nothing_was_parsed_but_every_file_is_an_own_file_link()
+        {
+            var episode1 = new Episode { Id = 1, EpisodeFileId = 10 };
+            _trackedDownload.RemoteEpisode.Episodes = new List<Episode>();
+
+            GivenImportResults(GivenResult(episode1, ImportRejectionReason.SourceIsSymlinkToCurrentFile));
 
             Subject.Import(_trackedDownload);
 

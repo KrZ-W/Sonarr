@@ -5,8 +5,6 @@ using NLog;
 using NLog.Config;
 using NLog.Targets;
 using NUnit.Framework;
-using NzbDrone.Common.Disk;
-using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.EpisodeImport.Specifications;
 using NzbDrone.Core.Parser.Model;
@@ -34,32 +32,34 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             };
 
             _target = @"C:\Test\TV\Other Series {tvdb-12345}\Season 1\Other.Series.S01E01.mkv".AsOsAgnostic();
-
-            GivenSettingEnabled(true);
         }
 
-        private void GivenSettingEnabled(bool enabled)
+        private SymlinkImportCheck GivenSymlink(ImportRejectionReason reason = ImportRejectionReason.SourceIsSymlink)
         {
-            Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.RejectSymlinkImportSources)
-                  .Returns(enabled);
-        }
+            var check = new SymlinkImportCheck
+            {
+                Target = _target,
+                Reason = reason,
+                Message = $"Source is a symbolic link → {_target}"
+            };
 
-        private void GivenSymlink()
-        {
-            Mocker.GetMock<IDiskProvider>()
-                  .Setup(s => s.GetSymbolicLinkTarget(_localEpisode.Path))
-                  .Returns(_target);
+            Mocker.GetMock<ISymlinkImportGuard>()
+                  .Setup(s => s.Check(_localEpisode))
+                  .Returns(check);
+
+            return check;
         }
 
         [Test]
-        public void should_accept_regular_file()
+        public void should_accept_when_guard_finds_no_link()
         {
             Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
+
+            Mocker.GetMock<ISymlinkImportGuard>().Verify(s => s.Check(_localEpisode), Times.Once());
         }
 
         [Test]
-        public void should_reject_symlink_with_reason_and_target()
+        public void should_reject_symlink_with_the_guards_reason_and_message()
         {
             GivenSymlink();
 
@@ -70,6 +70,30 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             result.Message.Should().Be($"Source is a symbolic link → {_target}");
 
             ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_pass_through_the_library_file_reason()
+        {
+            GivenSymlink(ImportRejectionReason.SourceIsSymlinkToLibraryFile);
+
+            Subject.IsSatisfiedBy(_localEpisode, null).Reason.Should().Be(ImportRejectionReason.SourceIsSymlinkToLibraryFile);
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_reject_link_to_own_current_file_without_warning()
+        {
+            // Completed download handling turns this rejection into "imported"; a Warn per pass would be noise.
+            GivenSymlink(ImportRejectionReason.SourceIsSymlinkToCurrentFile);
+
+            var result = Subject.IsSatisfiedBy(_localEpisode, null);
+
+            result.Accepted.Should().BeFalse();
+            result.Reason.Should().Be(ImportRejectionReason.SourceIsSymlinkToCurrentFile);
+
+            ExceptionVerification.ExpectedWarns(0);
         }
 
         [Test]
@@ -93,32 +117,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
         }
 
         [Test]
-        public void should_accept_symlink_when_setting_is_disabled()
-        {
-            GivenSettingEnabled(false);
-            GivenSymlink();
-
-            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
-
-            Mocker.GetMock<IDiskProvider>()
-                  .Verify(s => s.GetSymbolicLinkTarget(It.IsAny<string>()), Times.Never());
-        }
-
-        [Test]
-        public void should_accept_hardlink()
-        {
-            // A hardlink is a regular directory entry: no link target, only a link count above one
-            Mocker.GetMock<IDiskProvider>()
-                  .Setup(s => s.GetHardLinkCount(_localEpisode.Path))
-                  .Returns(2);
-
-            Subject.IsSatisfiedBy(_localEpisode, null).Accepted.Should().BeTrue();
-
-            Mocker.GetMock<IDiskProvider>()
-                  .Verify(s => s.GetHardLinkCount(It.IsAny<string>()), Times.Never());
-        }
-
-        [Test]
         public void should_reject_symlink_in_series_folder_too()
         {
             _localEpisode.ExistingFile = true;
@@ -127,15 +125,6 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Specifications
             Subject.IsSatisfiedBy(_localEpisode, null).Reason.Should().Be(ImportRejectionReason.SourceIsSymlink);
 
             ExceptionVerification.ExpectedWarns(1);
-        }
-
-        [Test]
-        public void should_only_query_the_candidate_path()
-        {
-            Subject.IsSatisfiedBy(_localEpisode, null);
-
-            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetSymbolicLinkTarget(_localEpisode.Path), Times.Once());
-            Mocker.GetMock<IDiskProvider>().VerifyNoOtherCalls();
         }
     }
 }

@@ -4,8 +4,6 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using NzbDrone.Common.Disk;
-using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles;
@@ -45,13 +43,14 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
 
             Mocker.SetConstant<IEnumerable<IImportDecisionEngineSpecification>>(new[] { Mocker.Resolve<NotSymlinkSpecification>() });
 
-            Mocker.GetMock<IConfigService>()
-                  .SetupGet(s => s.RejectSymlinkImportSources)
-                  .Returns(true);
-
-            Mocker.GetMock<IDiskProvider>()
-                  .Setup(s => s.GetSymbolicLinkTarget(_linkFile))
-                  .Returns(_linkTarget);
+            Mocker.GetMock<ISymlinkImportGuard>()
+                  .Setup(s => s.Check(It.Is<LocalEpisode>(l => l.Path == _linkFile)))
+                  .Returns(new SymlinkImportCheck
+                  {
+                      Target = _linkTarget,
+                      Reason = ImportRejectionReason.SourceIsSymlink,
+                      Message = $"Source is a symbolic link → {_linkTarget}"
+                  });
 
             Mocker.GetMock<IMediaFileService>()
                   .Setup(s => s.FilterExistingFiles(It.IsAny<List<string>>(), It.IsAny<Series>()))

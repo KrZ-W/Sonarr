@@ -37,5 +37,7 @@ public enum ImportRejectionReason
     NotRevisionUpgrade,
     NotCustomFormatUpgrade,
     CustomFormatMinimumScore,  // krzw(import-enforcement)
-    SourceIsSymlink  // krzw(symlink-import-guard)
+    SourceIsSymlink,  // krzw(symlink-import-guard)
+    SourceIsSymlinkToLibraryFile,  // krzw(symlink-import-guard): the link resolves to a tracked library file of another episode
+    SourceIsSymlinkToCurrentFile  // krzw(symlink-import-guard): the link resolves to the current file of the very episode(s) it maps to
 }
