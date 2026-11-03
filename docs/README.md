@@ -24,6 +24,8 @@ versioning scheme, see [`../FORK.md`](../FORK.md). For the release history, see
 | [Grabbed Release Title](features/grabbed-release-title.md) | The release title a file was grabbed under is stored on the file and, opt-in, used to score its custom formats when it beats the scene name / original file name; scores can only go up, naming is unchanged, manual backfill command |
 | [Per-Profile Size Limits](features/profile-size-limits.md) | Each quality profile can override the min / preferred / max MB-per-minute size limits of any quality or group it contains; UI inputs in the profile editor, no migration |
 | [Symlink Import Guard](features/symlink-import-guard.md) | Import candidates that are symbolic links are rejected on every import path (reason names the link target and, when known, the library file it is; a link to the episode's own current file counts as imported), hardlinks unaffected; setting on by default, off for rclone / debrid setups |
+| [User Scene Mappings](features/user-scene-mappings.md) | Bulk-import missing FR/QC series titles as `Type=User` scene mappings (refresh-proof by design); JSON import endpoint |
+| [IMDb Title Provider](features/imdb-title-provider.md) | Downloads IMDb's alternative-title dataset on a schedule and feeds the missing French/Quebec series titles into the user scene-mapping importer automatically; no external scripts |
 | [Completed Download Handling](features/completed-download-handling.md) | Configurable CDH interval + per-run logging + stuck `ImportPending` self-heal |
 | [Regional Language Parsing](features/regional-language-parsing.md) | `en-CA` / `fr-CA` parsing entries |
 | [Configurable Indexer Cooldown](features/configurable-indexer-cooldown.md) | Editable indexer back-off/escalation schedule |
