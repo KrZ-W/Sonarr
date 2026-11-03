@@ -15,6 +15,15 @@ In history terms: `episodeFileDeleted` (reason *Upgrade*) now only ever appears 
 upgrade that actually succeeded — in the same breath as its `downloadFolderImported`
 event — never for one that failed.
 
+> **Fixed after `v4.0.20.3014+krzw.2` (bug F11a).** Between the 2026-08-31 deploy and this fix
+> the row did not appear at all, and neither did the *On Episode File Delete For Upgrade*
+> webhook. Deleting the old row in `FinalizeUpgrade` happens after the replacement row is
+> added, and `EpisodeService` re-points the episodes at the new row on `EpisodeFileAddedEvent`.
+> The old file's `Episodes` lazy load (`WHERE EpisodeFileId = <old id>`) was resolved only
+> inside `MediaFileService.Delete`, by then empty, so the history and notification handlers
+> found nothing to write. `UpgradeEpisodeFile` now resolves the episodes before parking the
+> file. Upstream deletes before it adds and never had the problem.
+
 ## Why it exists
 
 Upstream Sonarr deletes first and imports second. `UpgradeMediaFileService` sends the

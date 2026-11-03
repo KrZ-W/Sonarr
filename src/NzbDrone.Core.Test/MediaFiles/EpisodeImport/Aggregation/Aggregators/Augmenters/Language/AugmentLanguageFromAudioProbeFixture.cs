@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
@@ -80,6 +81,107 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport.Aggregation.Aggregators.Au
             Mocker.GetMock<ICustomFormatCalculationService>().Setup(c => c.ParseCustomFormatForScoring(It.IsAny<LocalEpisode>())).Returns(new List<CustomFormat>());
 
             Mocker.SetConstant<IAudioLanguageProbeCache>(new AudioLanguageProbeCache());
+
+            // The augmenter reads the profile through the service (hydrated custom formats), not the series'
+            // lazy load. Hand it the same object so tests that edit _series.QualityProfile.Value keep working.
+            Mocker.GetMock<IQualityProfileService>()
+                  .Setup(s => s.Get(_series.QualityProfileId))
+                  .Returns(() => _series.QualityProfile.Value);
+        }
+
+        // krzw(audio-language-verification) F11b: what Series.QualityProfile.Value really looks like at import
+        // time. The HasOne lazy load bypasses QualityProfileRepository.Query, so every ProfileFormatItem carries
+        // an Id-only CustomFormat (CustomFormatIntConverter) with no Specifications.
+        private QualityProfile GivenIdOnlyLazyProfileAndHydratedService(params ICustomFormatSpecification[] specifications)
+        {
+            var hydrated = new QualityProfile
+            {
+                Id = _series.QualityProfileId,
+                MinFormatScore = 10,
+                FormatItems = new List<ProfileFormatItem>
+                {
+                    new ProfileFormatItem { Score = 100, Format = new CustomFormat("Fmt", specifications) { Id = 7 } }
+                }
+            };
+
+            _series.QualityProfile = new QualityProfile
+            {
+                Id = _series.QualityProfileId,
+                MinFormatScore = 10,
+                FormatItems = new List<ProfileFormatItem>
+                {
+                    new ProfileFormatItem { Score = 100, Format = new CustomFormat { Id = 7 } }
+                }
+            };
+
+            Mocker.GetMock<IQualityProfileService>()
+                  .Setup(s => s.Get(_series.QualityProfileId))
+                  .Returns(hydrated);
+
+            return hydrated;
+        }
+
+        [Test]
+        public void should_probe_when_the_lazy_profile_carries_id_only_formats_but_the_hydrated_one_has_a_language_condition()
+        {
+            GivenIdOnlyLazyProfileAndHydratedService(new Core.CustomFormats.LanguageSpecification { Value = Core.Languages.Language.French.Id });
+            GivenProbe("fr", 0.97);
+
+            // Sanity: the lazy value alone would never trigger (this is the bug)
+            _series.QualityProfile.Value.FormatItems[0].Format.Specifications.Should().BeNull();
+
+            var result = Subject.AugmentLanguage(_localEpisode, _downloadClientItem);
+
+            result.Should().NotBeNull();
+            result.Languages.Should().Equal(new List<Core.Languages.Language> { Core.Languages.Language.French });
+            _localEpisode.AudioLanguageVerification.Should().HaveCount(1);
+            VerifyProbeCount(1);
+        }
+
+        [Test]
+        public void should_read_the_profile_through_the_service_not_the_lazy_load()
+        {
+            GivenIdOnlyLazyProfileAndHydratedService(new Core.CustomFormats.LanguageSpecification { Value = Core.Languages.Language.French.Id });
+            GivenProbe("fr", 0.97);
+
+            Subject.AugmentLanguage(_localEpisode, _downloadClientItem);
+
+            Mocker.GetMock<IQualityProfileService>().Verify(s => s.Get(_series.QualityProfileId), Times.Once());
+        }
+
+        [Test]
+        public void should_still_skip_a_genuinely_language_free_profile()
+        {
+            GivenIdOnlyLazyProfileAndHydratedService(new Core.CustomFormats.ReleaseTitleSpecification { Value = "x265" });
+            _tracks.Add(new AudioTrackInfo { StreamIndex = 1, Codec = "aac", Channels = 2, Language = "und" });
+
+            Subject.AugmentLanguage(_localEpisode, _downloadClientItem).Should().BeNull();
+
+            VerifyProbeCount(0);
+            _localEpisode.AudioLanguageVerification.Should().BeNull();
+        }
+
+        [Test]
+        public void should_fire_the_contradiction_trigger_when_the_name_claims_french_and_no_track_is_tagged_fra()
+        {
+            // Live case 2026-11-02: French audio tagged eng, release name says FRENCH, profile scores a French CF
+            GivenIdOnlyLazyProfileAndHydratedService(new Core.CustomFormats.LanguageSpecification { Value = Core.Languages.Language.French.Id });
+            GivenProbe("fr", 0.97);
+
+            Subject.AugmentLanguage(_localEpisode, _downloadClientItem).Should().NotBeNull();
+
+            _localEpisode.AudioLanguageTrigger.Should().Be(AudioLanguageTrigger.Contradiction);
+            _localEpisode.AudioLanguageVerification.Single().TaggedLanguage.Should().Be("eng");
+            _localEpisode.AudioLanguageVerification.Single().DetectedLanguage.Should().Be("fr");
+        }
+
+        [Test]
+        public void should_fall_back_to_the_series_profile_when_the_service_has_none()
+        {
+            Mocker.GetMock<IQualityProfileService>().Setup(s => s.Get(It.IsAny<int>())).Returns((QualityProfile)null);
+            GivenProbe("fr", 0.97);
+
+            Subject.AugmentLanguage(_localEpisode, _downloadClientItem).Should().NotBeNull();
         }
 
         private void GivenProbe(string code, double confidence)

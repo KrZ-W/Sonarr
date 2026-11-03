@@ -96,6 +96,15 @@ the library (rescan / existing file), MediaInfo is missing, **or no custom forma
 profile has a Language condition** (fast path — the profile cannot care about language).
 Otherwise the first rule that applies decides which tracks are sent:
 
+> **Fixed after `v4.0.20.3014+krzw.2` (bug F11b).** Until then the fast path always won: the
+> augmenter read the profile from `Series.QualityProfile.Value`, a `HasOne` lazy load that
+> queries the `QualityProfiles` row directly and bypasses `QualityProfileRepository.Query`, the
+> only place that replaces the Id-only `CustomFormat` stubs with the real formats. No format
+> item ever had `Specifications`, so "no language condition" was true for every series and
+> the probe never ran (0 of 22,408 files on sonarr-fr had a record). The augmenter now resolves
+> the profile through `IQualityProfileService.Get(series.QualityProfileId)`. Radarr was never
+> hit in practice: its profiles have a `Language` column that satisfies the fast path by itself.
+
 | # | Trigger | Probed tracks |
 |---|---|---|
 | a | **Contradiction** — the claim contains a language no track is tagged with | every track (none carries the claimed language) |
