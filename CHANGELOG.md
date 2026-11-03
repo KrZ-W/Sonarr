@@ -10,6 +10,10 @@ and this fork's versioning is described in [FORK.md](FORK.md#versioning):
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [v4.0.20.3014+krzw.3] — based on Sonarr 4.0.20.3014
+
 ### Fixed
 
 - **Audio Language Verification never probed in Sonarr (F11b).** 0 of 22,408 episode files on
@@ -720,7 +724,8 @@ First documented fork release. Bundles every feature currently merged into
 - **`groupadd`/`useradd` use `-o`** so PUID/PGID can reuse an existing GID/UID;
   fixes container start failure when `PGID=100` collides with Debian's `users` group.
 
-[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.20.3014+krzw.2...HEAD
+[Unreleased]: https://github.com/KrZ-W/Sonarr/compare/v4.0.20.3014+krzw.3...HEAD
+[v4.0.20.3014+krzw.3]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.20.3014%2Bkrzw.3
 [v4.0.20.3014+krzw.2]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.20.3014%2Bkrzw.2
 [v4.0.20.3014+krzw.1]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.20.3014%2Bkrzw.1
 [v4.0.19.2979+krzw.25]: https://github.com/KrZ-W/Sonarr/releases/tag/v4.0.19.2979%2Bkrzw.25
