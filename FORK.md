@@ -117,9 +117,12 @@ with details. This fork does not submit changes upstream.
   (`// krzw(atomic-upgrade): ...`), so fork hunks are identifiable at rebase time;
   `git grep -n 'krzw('` lists them. Files that cannot hold comments (`en.json`,
   generated `*.css.d.ts`) are the only unmarked ones.
-- Each feature lives on its own `feature/*` or `fix/*` branch, cut from the upstream
-  release tag that was current when work on it started (`-main` suffix = upstream main
-  line), and is merged into `personal/all-features-main`. A rebase onto a newer upstream
-  moves only the aggregate; topic branches stay on their original base (see
+- Each feature or fix is built on a short-lived `feature/*`, `feat/*` or `fix/*` topic
+  branch cut from the current `personal/all-features-main` tip, merged back with `--no-ff`, and
+  then renamed to `archive/<name>`. The archived branches are history only: they sit on
+  the upstream base that was current when the feature landed (the aggregate is rebased
+  onto newer upstream releases, the archives are not), so git reports them as unmerged
+  even though every change is in the aggregate. The `krzw(<feature>)` markers and
+  `docs/features/*.md` are the authoritative map of what is live (see
   [docs/releasing.md](docs/releasing.md)). See [CHANGELOG.md](CHANGELOG.md) for per-feature
   history.
