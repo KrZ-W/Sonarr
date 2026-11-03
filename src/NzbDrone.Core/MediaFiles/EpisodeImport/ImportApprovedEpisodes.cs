@@ -33,6 +33,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
         private readonly IHistoryService _historyService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IManageCommandQueue _commandQueueManager;
+        private readonly ISymlinkImportGuard _symlinkImportGuard;  // krzw(symlink-import-guard)
         private readonly Logger _logger;
 
         public ImportApprovedEpisodes(IUpgradeMediaFiles episodeFileUpgrader,
@@ -43,6 +44,7 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                                       IHistoryService historyService,
                                       IEventAggregator eventAggregator,
                                       IManageCommandQueue commandQueueManager,
+                                      ISymlinkImportGuard symlinkImportGuard,
                                       Logger logger)
         {
             _episodeFileUpgrader = episodeFileUpgrader;
@@ -53,11 +55,27 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
             _historyService = historyService;
             _eventAggregator = eventAggregator;
             _commandQueueManager = commandQueueManager;
+            _symlinkImportGuard = symlinkImportGuard;
             _logger = logger;
         }
 
         public List<ImportResult> Import(List<ImportDecision> decisions, bool newDownload, DownloadClientItem downloadClientItem = null, ImportMode importMode = ImportMode.Auto)
         {
+            // krzw(symlink-import-guard): every path that creates an episode file from a source on disk ends here
+            // (completed download handling, Downloaded Episodes Scan, library rescan and the final Manual Import
+            // step, which builds approved decisions without running the specs). Re-check right before the file is
+            // touched so a symbolic link is never copied into the library as a link.
+            foreach (var decision in decisions.Where(d => d.Approved))
+            {
+                var symlink = _symlinkImportGuard.Check(decision.LocalEpisode);
+
+                if (symlink != null)
+                {
+                    _logger.Warn("Refusing to import {0}: {1}", decision.LocalEpisode.Path, symlink.Message);
+                    decision.Reject(new ImportRejection(symlink.Reason, symlink.Message));
+                }
+            }
+
             var qualifiedImports = decisions
                 .Where(decision => decision.Approved)
                 .GroupBy(decision => decision.LocalEpisode.Series.Id)
@@ -249,6 +267,12 @@ namespace NzbDrone.Core.MediaFiles.EpisodeImport
                     _eventAggregator.PublishEvent(new EpisodeImportFailedEvent(e, localEpisode, newDownload, downloadClientItem));
 
                     importResults.Add(new ImportResult(importDecision, "Failed to import episode, unable to move existing file to the Recycle Bin."));
+                }
+                catch (SymlinkImportSourceException e)
+                {
+                    // krzw(symlink-import-guard): the source became a link between the decision and the transfer
+                    _logger.Warn("Couldn't import episode {0}: {1}", localEpisode, e.Message);
+                    importResults.Add(new ImportResult(importDecision, e.Message));
                 }
                 catch (Exception e)
                 {

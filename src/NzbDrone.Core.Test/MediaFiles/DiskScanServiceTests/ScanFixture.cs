@@ -11,6 +11,7 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Tv;
@@ -480,6 +481,35 @@ namespace NzbDrone.Core.Test.MediaFiles.DiskScanServiceTests
 
             Mocker.GetMock<IEventAggregator>()
                 .Verify(v => v.PublishEvent(It.Is<SeriesScannedEvent>(c => c.Series != null && c.PossibleExtraFiles.Count == 0)), Times.Once());
+        }
+
+        // krzw(symlink-import-guard): a library rescan goes through the same funnel, so an untracked symlink in
+        // the series folder is never registered as an episode file even if a decision came back approved.
+        [Test]
+        public void should_not_register_an_untracked_symlink_found_by_a_rescan()
+        {
+            GivenSeriesFolder();
+
+            var linkPath = Path.Combine(_series.Path, "Season 1", "Series - S01E01.mkv");
+            GivenFiles(new List<string> { linkPath });
+
+            var localEpisode = new LocalEpisode { Path = linkPath, Series = _series, Episodes = new List<Episode> { new Episode { Id = 1 } }, FileEpisodeInfo = new ParsedEpisodeInfo() };
+
+            Mocker.GetMock<IMakeImportDecision>()
+                  .Setup(s => s.GetImportDecisions(It.IsAny<List<string>>(), _series, false))
+                  .Returns(new List<ImportDecision> { new ImportDecision(localEpisode) });
+
+            Mocker.GetMock<ISymlinkImportGuard>()
+                  .Setup(s => s.Check(localEpisode))
+                  .Returns(new SymlinkImportCheck { Target = "target", Reason = ImportRejectionReason.SourceIsSymlink, Message = "Source is a symbolic link → target" });
+
+            Mocker.SetConstant<IImportApprovedEpisodes>(Mocker.Resolve<ImportApprovedEpisodes>());
+
+            Subject.Scan(_series);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<EpisodeFile>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
         }
     }
 }

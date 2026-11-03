@@ -1,6 +1,6 @@
 # Symlink Import Guard
 
-> **Status:** stable · **Since:** `v4.0.19.2979+krzw.25` · **Surface:** Settings → Media Management → Importing (advanced), `/api/v3/config/mediamanagement`
+> **Status:** stable · **Since:** `v4.0.19.2979+krzw.25` (import-path hardening and the already-imported rule: `v4.0.20.3014+krzw.2`) · **Surface:** Settings → Media Management → Importing (advanced), `/api/v3/config/mediamanagement`
 
 ## What it does
 
@@ -17,6 +17,24 @@ download *Import Blocked* with that message in the queue, and Manual Import list
 the rejection like any other. Each rejection is also logged at **Warn** with the link path and
 its resolved target, so the log alone tells you what the link pointed at. In the Manual Import
 API, `rejections[].reason` carries the message text, with `type: permanent`.
+
+Since `v4.0.20.3014+krzw.2` the guard also says **what the link points at** when the target is a file
+Sonarr already tracks, with its own reason:
+
+| Resolved target | Reason | Message suffix |
+|---|---|---|
+| not a library file | `SourceIsSymlink` | *(none)* |
+| a tracked file of another episode (or series) | `SourceIsSymlinkToLibraryFile` | `, which is already the library file of <Series> SxxEyy` |
+| the **current file of the very episode(s) the candidate maps to** | `SourceIsSymlinkToCurrentFile` | `, which is already the current file of this episode` |
+
+The third case is the normal outcome of this stack's seed pipeline (a `/seed` payload replaced
+by a link to the library copy it was imported as, or deduplicated against it): there is nothing
+left to import, so **completed download handling treats such a download as imported** (state
+*Imported*, `DownloadCompletedEvent` with the episodes' current files, download history row, removal
+from the client per the client's *Remove Completed* setting) instead of leaving it *Import
+Blocked* and re-evaluating it every pass. The rule needs every episode the grab covers to be either imported or linked to its own current file (samples and extras do not count against it); with no episodes parsed from the grab, every file must be such a link.
+That case is logged at **Debug** by the spec and at **Info** once when the download is marked
+imported; the other two cases keep the **Warn**.
 
 **Hardlinks are not affected.** A hardlink is a regular directory entry; only symbolic links
 (including relative, chained and looping ones) are rejected by this check. A *broken* link
@@ -56,14 +74,24 @@ behaviour returns, including the data-loss case above.
 
 ## Behavior & edge cases
 
-- **Where it applies.** The spec runs in the import decision engine, so it covers completed
-  download handling, the *Downloaded Episodes Scan* command, the Manual Import listing and
-  the Manual Import re-evaluation that runs when you change a row's series, episodes,
-  quality, language or release group. It also applies to library rescans: an *untracked*
-  symlink found in a series folder is not added as an episode file while the setting is on
-  (files already tracked are not re-evaluated). The *Manage Episodes* listing on a series page does not run import
-  specs for untracked files, so a symlink there shows no rejection until one of the row's
-  fields is changed and it is re-evaluated.
+- **Where it applies.** Three layers, all driven by one shared check (`SymlinkImportGuard`,
+  which reads the setting, `lstat`s the candidate and resolves the target against the library):
+  1. the import-decision spec `NotSymlinkSpecification`, so completed download handling, the
+     *Downloaded Episodes Scan* command, the Manual Import listing and re-evaluation, and library rescans
+     all show the rejection;
+  2. the import funnel `ImportApprovedEpisodes.Import`, which every path that turns a source file into
+     an episode file goes through, including the **final Manual Import step** (the `ManualImport`
+     command builds approved decisions without running the specs, so before `v4.0.20.3014+krzw.2` a
+     symlinked row that was left ticked, or posted by an API client, was imported as a link);
+  3. the file mover (`EpisodeFileMovingService.MoveEpisodeFile` / `CopyEpisodeFile` for imports only),
+     evaluated immediately before the transfer, so a payload that becomes a link *between* the
+     decision and the copy (seed relinking racing an import) is refused as well, with the result
+     "Failed to import" and the link message.
+
+  Renaming or moving a file that already belongs to the library is not an import and is not
+  checked. The *Manage Episodes* listing on a series page does not run import specs for untracked
+  files, so a symlink there shows no rejection until one of the row's fields is changed and
+  it is re-evaluated; it is still refused by layer 2 if imported.
 - **Only matched candidates.** Like every import spec, it runs once the file has been matched
   to episodes. A link that cannot be matched is still rejected, by the usual
   "Unknown Series" / "Invalid season or episode" reasons.
@@ -78,14 +106,16 @@ behaviour returns, including the data-loss case above.
   Warn naming the target). It is still rejected and never imported.
 - **Repeated warnings.** Completed download handling re-checks an *Import Blocked* download
   on every pass, so the Warn line repeats until the download is removed from the client or
-  imported manually. Library rescans also re-evaluate untracked files, so an untracked symlink
+  imported manually (links to the download's own current file no longer get here: they are
+  treated as imported, see above). Library rescans also re-evaluate untracked files, so an untracked symlink
   in a series folder logs the Warn on every rescan or refresh until it is removed or the setting is
   turned off.
-- **Manual Import does not block it.** The rejection is shown in the Manual Import listing,
-  but, as with every other spec rejection, it does not stop a manual import: the dialog
-  pre-selects every fully matched row whether or not it has rejections, and the final import
-  step does not re-run the specs. **Untick symlink rows before pressing Import**, or the
-  incident replays. The same applies to any API client posting a `ManualImport` command.
+- **Manual Import cannot bypass it.** The rejection is shown in the Manual Import listing and
+  the dialog still pre-selects every fully matched row, but since `v4.0.20.3014+krzw.2` the final
+  import step re-checks each row: a symlinked source is rejected with the same reason and
+  never copied as a link, whether ticked in the UI or posted as a `ManualImport` command by an
+  API client. The command itself only logs at Trace; the refusal is a **Warn**
+  (`Refusing to import <path>: Source is a symbolic link → …`).
 
 ## Upstream
 
@@ -102,7 +132,15 @@ Commit on `personal/all-features-main` (release `v4.0.19.2979+krzw.25`). Key fil
 `Configuration/ConfigService` (`RejectSymlinkImportSources`),
 `Sonarr.Api.V3/Config/MediaManagementConfigResource`,
 `frontend/src/Settings/MediaManagement/MediaManagement.js`.
-Tests: `NotSymlinkSpecificationFixture`, `NotSymlinkImportDecisionFixture`, and the
+`v4.0.20.3014+krzw.2` adds `MediaFiles/EpisodeImport/SymlinkImportGuard` (`ISymlinkImportGuard`, `SymlinkImportCheck`),
+`MediaFiles/SymlinkImportSourceException`, `ImportDecision.Reject`, the gate in
+`ImportApprovedEpisodes.Import`, the transfer-time check in `EpisodeFileMovingService`, the reasons
+`SourceIsSymlinkToLibraryFile` / `SourceIsSymlinkToCurrentFile` and the already-imported rule in
+`Download/CompletedDownloadService.VerifyImport`.
+Tests: `NotSymlinkSpecificationFixture`, `NotSymlinkImportDecisionFixture`, `SymlinkImportGuardFixture`,
+the symlink cases in `ImportApprovedEpisodesFixture` (funnel), `MoveEpisodeFileFixture` (mover),
+`ManualImportServiceFixture` (final Manual Import step, untracked and queue), `ScanFixture`
+(rescan), `CompletedDownloadServiceTests.ImportFixture` (already-imported rule), and the
 `GetSymbolicLinkTarget_*` cases in `NzbDrone.Mono.Test` `DiskProviderFixture` (real links on
 disk: absolute, relative, chained, broken, looping, hardlink, file inside a linked folder).
 

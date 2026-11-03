@@ -91,6 +91,108 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeImport
                   .Returns(new List<EpisodeFile>());
         }
 
+        // krzw(symlink-import-guard): the funnel re-checks every approved decision right before the file is
+        // touched. This is the only check the final Manual Import step gets (it builds approved decisions without
+        // running the specs), and it closes the window between the decision and the transfer for the others.
+        private SymlinkImportCheck GivenSymlinkSource(ImportDecision decision, ImportRejectionReason reason = ImportRejectionReason.SourceIsSymlink)
+        {
+            var check = new SymlinkImportCheck
+            {
+                Target = @"C:\Test\TV\30 Rock\Season 1\30 Rock - S01E02.avi".AsOsAgnostic(),
+                Reason = reason,
+                Message = "Source is a symbolic link → target"
+            };
+
+            Mocker.GetMock<ISymlinkImportGuard>()
+                  .Setup(s => s.Check(decision.LocalEpisode))
+                  .Returns(check);
+
+            return check;
+        }
+
+        [Test]
+        public void should_reject_an_approved_new_download_whose_source_is_a_symlink()
+        {
+            GivenNewDownload();
+            var decision = _approvedDecisions.First();
+            var check = GivenSymlinkSource(decision, ImportRejectionReason.SourceIsSymlinkToLibraryFile);
+
+            var result = Subject.Import(new List<ImportDecision> { decision }, true, _downloadClientItem).Single();
+
+            result.Result.Should().Be(ImportResultType.Rejected);
+            result.Errors.Should().ContainSingle().Which.Should().Be(check.Message);
+            decision.Approved.Should().BeFalse();
+            decision.Rejections.Single().Reason.Should().Be(ImportRejectionReason.SourceIsSymlinkToLibraryFile);
+
+            Mocker.GetMock<IUpgradeMediaFiles>().Verify(v => v.UpgradeEpisodeFile(It.IsAny<EpisodeFile>(), It.IsAny<LocalEpisode>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<EpisodeFile>()), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<EpisodeImportedEvent>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_reject_a_symlink_found_by_a_library_rescan()
+        {
+            GivenExistingFileOnDisk();
+            var decision = _approvedDecisions.First();
+            GivenSymlinkSource(decision);
+
+            var result = Subject.Import(new List<ImportDecision> { decision }, false).Single();
+
+            result.Result.Should().Be(ImportResultType.Rejected);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<EpisodeFile>()), Times.Never());
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Delete(It.IsAny<EpisodeFile>(), It.IsAny<DeleteMediaFileReason>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_only_reject_the_symlinked_decision()
+        {
+            GivenNewDownload();
+            GivenSymlinkSource(_approvedDecisions.First());
+
+            var results = Subject.Import(_approvedDecisions, true, _downloadClientItem);
+
+            results.Count(r => r.Result == ImportResultType.Imported).Should().Be(_approvedDecisions.Count - 1);
+            results.Count(r => r.Result == ImportResultType.Rejected).Should().Be(1);
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_check_every_approved_decision_with_the_guard()
+        {
+            GivenNewDownload();
+
+            Subject.Import(_approvedDecisions, true, _downloadClientItem);
+
+            Mocker.GetMock<ISymlinkImportGuard>().Verify(v => v.Check(It.IsAny<LocalEpisode>()), Times.Exactly(_approvedDecisions.Count));
+        }
+
+        [Test]
+        public void should_record_a_failed_import_when_the_mover_refuses_a_symlink_source()
+        {
+            // The source became a link between the funnel's check and the transfer
+            GivenNewDownload();
+            var decision = _approvedDecisions.First();
+
+            Mocker.GetMock<IUpgradeMediaFiles>()
+                  .Setup(s => s.UpgradeEpisodeFile(It.IsAny<EpisodeFile>(), It.IsAny<LocalEpisode>(), It.IsAny<bool>()))
+                  .Throws(new SymlinkImportSourceException("Source is a symbolic link → target"));
+
+            var result = Subject.Import(new List<ImportDecision> { decision }, true, _downloadClientItem).Single();
+
+            result.Result.Should().Be(ImportResultType.Skipped);
+            result.Errors.Should().ContainSingle().Which.Should().Be("Source is a symbolic link → target");
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.IsAny<EpisodeFile>()), Times.Never());
+
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
         [Test]
         public void should_not_import_any_if_there_are_no_approved_decisions()
         {

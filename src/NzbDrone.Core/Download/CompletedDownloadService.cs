@@ -289,8 +289,55 @@ namespace NzbDrone.Core.Download
                 return true;
             }
 
+            // krzw(symlink-import-guard): the seed payload has been replaced by links to the very files these
+            // episodes already have in the library (seed relinking after an earlier import, or seed deduplication
+            // against the library). Nothing is left to import: treat the download as imported instead of leaving
+            // it blocked and re-evaluated forever.
+            if (AllEpisodesAlreadyCurrentFiles(trackedDownload, importResults))
+            {
+                _logger.Info("All files of '{0}' are symbolic links to the episodes' current library files, treating the download as imported", trackedDownload.DownloadItem.Title);
+
+                var episodes = _episodeService.GetEpisodes(trackedDownload.RemoteEpisode.Episodes.Select(e => e.Id));
+                var files = _mediaFileService.GetFiles(episodes.Select(e => e.EpisodeFileId).Where(i => i > 0).Distinct());
+
+                trackedDownload.State = TrackedDownloadState.Imported;
+                _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, trackedDownload.RemoteEpisode.Series.Id, files, releaseInfo));
+
+                return true;
+            }
+
             _logger.Debug("Not all episodes have been imported for the release '{0}'", trackedDownload.DownloadItem.Title);
             return false;
+        }
+
+        // krzw(symlink-import-guard)
+        private static bool AllEpisodesAlreadyCurrentFiles(TrackedDownload trackedDownload, List<ImportResult> importResults)
+        {
+            var linkedResults = importResults.Where(r => r.Result == ImportResultType.Rejected &&
+                                                         r.ImportDecision.LocalEpisode != null &&
+                                                         r.ImportDecision.Rejections.Any(x => x.Reason == ImportRejectionReason.SourceIsSymlinkToCurrentFile))
+                                             .ToList();
+
+            if (linkedResults.Empty())
+            {
+                return false;
+            }
+
+            var expectedEpisodeIds = trackedDownload.RemoteEpisode.Episodes.Select(e => e.Id).Distinct().ToList();
+
+            if (expectedEpisodeIds.Empty())
+            {
+                // Nothing parsed from the grab: only when every single file is such a link
+                return linkedResults.Count == importResults.Count;
+            }
+
+            var coveredEpisodeIds = importResults.Where(r => r.Result == ImportResultType.Imported)
+                                                 .Concat(linkedResults)
+                                                 .SelectMany(r => r.ImportDecision.LocalEpisode.Episodes)
+                                                 .Select(e => e.Id)
+                                                 .ToHashSet();
+
+            return expectedEpisodeIds.All(coveredEpisodeIds.Contains);
         }
 
         private void SetStateToImportBlocked(TrackedDownload trackedDownload)

@@ -36,6 +36,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRootFolderService _rootFolderService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IConfigService _configService;
+        private readonly ISymlinkImportGuard _symlinkImportGuard;  // krzw(symlink-import-guard)
         private readonly Logger _logger;
 
         public EpisodeFileMovingService(IEpisodeService episodeService,
@@ -48,6 +49,7 @@ namespace NzbDrone.Core.MediaFiles
                                 IRootFolderService rootFolderService,
                                 IEventAggregator eventAggregator,
                                 IConfigService configService,
+                                ISymlinkImportGuard symlinkImportGuard,
                                 Logger logger)
         {
             _episodeService = episodeService;
@@ -60,6 +62,7 @@ namespace NzbDrone.Core.MediaFiles
             _rootFolderService = rootFolderService;
             _eventAggregator = eventAggregator;
             _configService = configService;
+            _symlinkImportGuard = symlinkImportGuard;
             _logger = logger;
         }
 
@@ -82,6 +85,8 @@ namespace NzbDrone.Core.MediaFiles
 
         public EpisodeFile MoveEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
         {
+            EnsureImportSourceIsNotSymlink(localEpisode);  // krzw(symlink-import-guard)
+
             // krzw(grabbed-release-title): naming is the carve-out — the {Custom Formats} token keeps the legacy ladder
             var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.NamingCustomFormats);
 
@@ -94,6 +99,8 @@ namespace NzbDrone.Core.MediaFiles
 
         public EpisodeFile CopyEpisodeFile(EpisodeFile episodeFile, LocalEpisode localEpisode)
         {
+            EnsureImportSourceIsNotSymlink(localEpisode);  // krzw(symlink-import-guard)
+
             // krzw(grabbed-release-title): naming is the carve-out — the {Custom Formats} token keeps the legacy ladder
             var filePath = _buildFileNames.BuildFilePath(localEpisode.Episodes, localEpisode.Series, episodeFile, Path.GetExtension(localEpisode.Path), null, localEpisode.NamingCustomFormats);
 
@@ -107,6 +114,19 @@ namespace NzbDrone.Core.MediaFiles
 
             _logger.Debug("Copying episode file: {0} to {1}", episodeFile.Path, filePath);
             return TransferFile(episodeFile, localEpisode.Series, localEpisode.Episodes, filePath, TransferMode.Copy, localEpisode);
+        }
+
+        // krzw(symlink-import-guard): last line of defence, evaluated right before the transfer. The import
+        // overloads only; renaming or moving a file that already belongs to the library is not an import.
+        private void EnsureImportSourceIsNotSymlink(LocalEpisode localEpisode)
+        {
+            var check = _symlinkImportGuard.Check(localEpisode);
+
+            if (check != null)
+            {
+                _logger.Warn("Refusing to transfer {0} into the library: {1}", localEpisode.Path, check.Message);
+                throw new SymlinkImportSourceException(check.Message);
+            }
         }
 
         private EpisodeFile TransferFile(EpisodeFile episodeFile, Series series, List<Episode> episodes, string destinationFilePath, TransferMode mode, LocalEpisode localEpisode = null)

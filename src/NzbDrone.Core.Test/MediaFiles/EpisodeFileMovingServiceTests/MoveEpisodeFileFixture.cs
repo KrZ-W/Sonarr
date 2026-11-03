@@ -8,6 +8,7 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.EpisodeImport;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Organizer;
@@ -158,6 +159,66 @@ namespace NzbDrone.Core.Test.MediaFiles.EpisodeFileMovingServiceTests
             Mocker.GetMock<IEventAggregator>()
                   .Verify(s => s.PublishEvent<EpisodeFolderCreatedEvent>(It.Is<EpisodeFolderCreatedEvent>(p =>
                       p.SeriesFolder.IsNotNullOrWhiteSpace())), Times.Never());
+        }
+
+        // krzw(symlink-import-guard): last line of defence, right before the bytes move
+        private void GivenImportSourceIsSymlink()
+        {
+            Mocker.GetMock<ISymlinkImportGuard>()
+                  .Setup(s => s.Check(_localEpisode))
+                  .Returns(new SymlinkImportCheck
+                  {
+                      Target = @"C:\Test\TV\Series\Season 01\Other.avi".AsOsAgnostic(),
+                      Reason = ImportRejectionReason.SourceIsSymlink,
+                      Message = "Source is a symbolic link → target"
+                  });
+        }
+
+        [Test]
+        public void should_refuse_to_move_an_import_whose_source_is_a_symlink()
+        {
+            GivenImportSourceIsSymlink();
+
+            Assert.Throws<SymlinkImportSourceException>(() => Subject.MoveEpisodeFile(_episodeFile, _localEpisode));
+
+            Mocker.GetMock<IDiskTransferService>().Verify(v => v.TransferFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransferMode>(), It.IsAny<bool>()), Times.Never());
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_refuse_to_copy_an_import_whose_source_is_a_symlink()
+        {
+            GivenImportSourceIsSymlink();
+
+            Assert.Throws<SymlinkImportSourceException>(() => Subject.CopyEpisodeFile(_episodeFile, _localEpisode));
+
+            Mocker.GetMock<IDiskTransferService>().Verify(v => v.TransferFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TransferMode>(), It.IsAny<bool>()), Times.Never());
+            ExceptionVerification.ExpectedWarns(1);
+        }
+
+        [Test]
+        public void should_transfer_an_import_whose_source_is_a_regular_file()
+        {
+            Mocker.GetMock<IImportScript>()
+                  .Setup(s => s.TryImport(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<LocalEpisode>(), It.IsAny<EpisodeFile>(), It.IsAny<TransferMode>()))
+                  .Returns(ScriptImportDecision.DeferMove);
+
+            Subject.MoveEpisodeFile(_episodeFile, _localEpisode);
+
+            Mocker.GetMock<ISymlinkImportGuard>().Verify(v => v.Check(_localEpisode), Times.Once());
+            Mocker.GetMock<IDiskTransferService>().Verify(v => v.TransferFile(It.IsAny<string>(), It.IsAny<string>(), TransferMode.Move, It.IsAny<bool>()), Times.Once());
+        }
+
+        [Test]
+        public void should_not_consult_the_guard_when_renaming_an_existing_library_file()
+        {
+            Mocker.GetMock<IEpisodeService>()
+                  .Setup(s => s.GetEpisodesByFileId(_episodeFile.Id))
+                  .Returns(_localEpisode.Episodes);
+
+            Subject.MoveEpisodeFile(_episodeFile, _series);
+
+            Mocker.GetMock<ISymlinkImportGuard>().Verify(v => v.Check(It.IsAny<LocalEpisode>()), Times.Never());
         }
     }
 }
