@@ -16,7 +16,7 @@
 #       -v /mnt/media:/tv krz-w/sonarr:dev
 
 # ----- frontend stage -----
-FROM node:20.11.1-bookworm-slim AS frontend
+FROM node:20.19.5-bookworm-slim AS frontend
 WORKDIR /src
 
 COPY package.json yarn.lock .yarnrc tsconfig.json ./
